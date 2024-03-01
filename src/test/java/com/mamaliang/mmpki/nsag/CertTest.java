@@ -3,6 +3,8 @@ package com.mamaliang.mmpki.nsag;
 import com.mamaliang.mmpki.cert.service.impl.*;
 import com.mamaliang.mmpki.cert.vo.CaIssueCertVO;
 import com.mamaliang.mmpki.cert.vo.SelfIssueCertVO;
+import com.mamaliang.mmpki.util.X500NameUtil;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,12 +41,8 @@ public class CertTest {
     @Test
     void sm2() throws IOException {
         SelfIssueCertVO vo = new SelfIssueCertVO();
-        vo.setCountry("CN");
-        vo.setStateOrProvince("SH");
-        vo.setLocality("SH");
-        vo.setOrganization("FUTURE");
-        vo.setOrganizationUnit("FUTURE");
-        vo.setCommonName("admin");
+        X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "admin");
+        vo.setSubjectDn(siteDn);
         vo.setCa(false);
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
@@ -63,12 +61,8 @@ public class CertTest {
     @Test
     void ecc() throws IOException {
         SelfIssueCertVO vo = new SelfIssueCertVO();
-        vo.setCountry("CN");
-        vo.setStateOrProvince("SH");
-        vo.setLocality("SH");
-        vo.setOrganization("FUTURE");
-        vo.setOrganizationUnit("FUTURE");
-        vo.setCommonName("www.site.com");
+        X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
+        vo.setSubjectDn(siteDn);
         vo.setCa(false);
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
@@ -88,12 +82,8 @@ public class CertTest {
     @Test
     void rsa() throws IOException {
         SelfIssueCertVO vo = new SelfIssueCertVO();
-        vo.setCountry("CN");
-        vo.setStateOrProvince("SH");
-        vo.setLocality("SH");
-        vo.setOrganization("FUTURE");
-        vo.setOrganizationUnit("FUTURE");
-        vo.setCommonName("www.site.com");
+        X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
+        vo.setSubjectDn(siteDn);
         vo.setCa(false);
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
@@ -116,12 +106,8 @@ public class CertTest {
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
 
         SelfIssueCertVO svo = new SelfIssueCertVO();
-        svo.setCountry("CN");
-        svo.setStateOrProvince("SH");
-        svo.setLocality("SH");
-        svo.setOrganization("FUTURE");
-        svo.setOrganizationUnit("FUTURE");
-        svo.setCommonName("SM2ROOTCA");
+        X500Name caDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "SM2ROOTCA");
+        svo.setSubjectDn(caDn);
         svo.setCa(false);
         svo.setNotBefore(notBefore);
         svo.setNotAfter(notAfter);

@@ -134,7 +134,7 @@ public class CertUtil {
         return Extension.create(Extension.keyUsage, true, keyUsage);
     }
 
-    private static Extension generateSANExt(List<String> subjectAltNames) throws IOException {
+    public static Extension generateSANExt(List<String> subjectAltNames) throws IOException {
         GeneralName[] sans = new GeneralName[subjectAltNames.size()];
         String ipRegex = "(((\\d{1,2})|(1\\d{2})|(2[0-4]\\d)|(25[0-5]))\\.){3}((\\d{1,2})|(1\\d{2})|(2[0-4]\\d)|(25[0-5]))";
         for (int i = 0; i < subjectAltNames.size(); i++) {

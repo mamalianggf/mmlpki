@@ -1,0 +1,193 @@
+package com.mamaliang.mmpki.gmt0016;
+
+import com.mamaliang.mmpki.algorithm.SM2;
+import com.mamaliang.mmpki.util.CertUtil;
+import com.mamaliang.mmpki.util.X500NameUtil;
+import com.sun.jna.Pointer;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.Certificate;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import java.security.KeyPair;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * 需连接usbkey
+ *
+ * @author gaof
+ * @date 2024/1/5
+ */
+//@Disabled
+public class GM3000Test {
+
+    @Test
+    void testListContainer() {
+        SKFLibraryWrapper skf = null;
+        Pointer hDev = null;
+        Pointer hApplication = null;
+        try {
+            skf = new SKFLibraryWrapper("gm3000.1.0");
+            List<String> devNames = skf.enumDev();
+            hDev = skf.connectDev(devNames.get(0));
+            List<String> applicationNames = skf.enumApplication(hDev);
+            hApplication = skf.openApplication(hDev, applicationNames.get(0));
+            skf.enumContainer(hApplication);
+        } finally {
+            if (Objects.nonNull(skf)) {
+                if (Objects.nonNull(hApplication)) {
+                    skf.closeApplication(hApplication);
+                }
+                if (Objects.nonNull(hDev)) {
+                    skf.disConnectDev(hDev);
+                }
+            }
+        }
+    }
+
+    @Test
+    void testCreateContainer() {
+        SKFLibraryWrapper skf = null;
+        Pointer hDev = null;
+        Pointer hApplication = null;
+        try {
+            skf = new SKFLibraryWrapper("gm3000.1.0");
+            List<String> devNames = skf.enumDev();
+            hDev = skf.connectDev(devNames.get(0));
+            List<String> applicationNames = skf.enumApplication(hDev);
+            hApplication = skf.openApplication(hDev, applicationNames.get(0));
+            skf.enumContainer(hApplication);
+            // 辉哥的key,目前只知道用户pin码是12345678,管理员pin码和设备认证码都不知道
+            skf.verifyPIN(hApplication, 1, "12345678");
+            skf.createContainer(hApplication, "niubi");
+            skf.enumContainer(hApplication);
+        } finally {
+            if (Objects.nonNull(skf)) {
+                if (Objects.nonNull(hApplication)) {
+                    skf.closeApplication(hApplication);
+                }
+                if (Objects.nonNull(hDev)) {
+                    skf.disConnectDev(hDev);
+                }
+            }
+        }
+    }
+
+    @Test
+    void testDeleteContainer() {
+        SKFLibraryWrapper skf = null;
+        Pointer hDev = null;
+        Pointer hApplication = null;
+        try {
+            skf = new SKFLibraryWrapper("gm3000.1.0");
+            List<String> devNames = skf.enumDev();
+            hDev = skf.connectDev(devNames.get(0));
+            List<String> applicationNames = skf.enumApplication(hDev);
+            hApplication = skf.openApplication(hDev, applicationNames.get(0));
+            skf.enumContainer(hApplication);
+            // 辉哥的key,目前只知道用户pin码是12345678,管理员pin码和设备认证码都不知道
+            skf.verifyPIN(hApplication, 1, "12345678");
+            skf.deleteContainer(hApplication, "niubi");
+            skf.enumContainer(hApplication);
+        } finally {
+            if (Objects.nonNull(skf)) {
+                if (Objects.nonNull(hApplication)) {
+                    skf.closeApplication(hApplication);
+                }
+                if (Objects.nonNull(hDev)) {
+                    skf.disConnectDev(hDev);
+                }
+            }
+        }
+    }
+
+    @Test
+    void testGenerateECCKeyPair() {
+        SKFLibraryWrapper skf = null;
+        Pointer hDev = null;
+        Pointer hApplication = null;
+        Pointer hContainer = null;
+        try {
+            skf = new SKFLibraryWrapper("gm3000.1.0");
+            List<String> devNames = skf.enumDev();
+            hDev = skf.connectDev(devNames.get(0));
+            List<String> applicationNames = skf.enumApplication(hDev);
+            hApplication = skf.openApplication(hDev, applicationNames.get(0));
+            String containerName = "niubi";
+            hContainer = skf.openContainer(hApplication, containerName);
+            skf.verifyPIN(hApplication, 1, "12345678");
+            skf.genECCKeyPair(hContainer);
+        } finally {
+            if (Objects.nonNull(skf)) {
+                if (Objects.nonNull(hApplication)) {
+                    skf.closeContainer(hContainer);
+                }
+                if (Objects.nonNull(hApplication)) {
+                    skf.closeApplication(hApplication);
+                }
+                if (Objects.nonNull(hDev)) {
+                    skf.disConnectDev(hDev);
+                }
+            }
+        }
+    }
+
+
+    @Test
+    void testGenerateCertificateAndImport() {
+        SKFLibraryWrapper skf = null;
+        Pointer hDev = null;
+        Pointer hApplication = null;
+        Pointer hContainer = null;
+        try {
+            skf = new SKFLibraryWrapper("gm3000.1.0");
+            List<String> devNames = skf.enumDev();
+            hDev = skf.connectDev(devNames.get(0));
+            List<String> applicationNames = skf.enumApplication(hDev);
+            hApplication = skf.openApplication(hDev, applicationNames.get(0));
+            String containerName = "niubi";
+            hContainer = skf.openContainer(hApplication, containerName);
+
+            skf.verifyPIN(hApplication, 1, "12345678");
+            Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = skf.exportPublicKey(hContainer, true);
+            BCECPublicKey bcecPublicKey = SM2.convert2PublicKey(eccPublicKeyBlob.XCoordinate, eccPublicKeyBlob.YCoordinate);
+
+            // ca cert
+            X500Name caName = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "SM2ROOT");
+            Date notBefore = new Date();
+            Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
+            KeyPair caKeyPair = SM2.generateKeyPair();
+            Certificate sm2ROOT = CertUtil.selfIssueCert(true, false, false, caName, notBefore, notAfter, Collections.singletonList("SM2ROOT"), caKeyPair, SM2.SIGNATURE_SM3_WITH_SM2);
+            // sig cert and enc key pair and enc cert
+            X500Name siteName = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "SM2TEST");
+            Certificate sm2SIG = CertUtil.caIssueCert(false, true, false, siteName, bcecPublicKey, notBefore, notAfter, caName, CertUtil.generateSANExt(Collections.singletonList("SM2TEST")), caKeyPair.getPublic(), caKeyPair.getPrivate(), SM2.SIGNATURE_SM3_WITH_SM2);
+            skf.importCertificate(hContainer, true, sm2SIG.getEncoded());
+            KeyPair encKeyPair = SM2.generateKeyPair();
+            SKF_ENVELOPEDKEYBLOB skfEnvelopedkeyblob = EnvelopedUtil.assembleBackend((BCECPrivateKey) encKeyPair.getPrivate(), (BCECPublicKey) encKeyPair.getPublic(), bcecPublicKey);
+            skf.ImportECCKeyPair(hContainer, skfEnvelopedkeyblob);
+            Certificate sm2ENC = CertUtil.caIssueCert(false, false, true, siteName, encKeyPair.getPublic(), notBefore, notAfter, caName, CertUtil.generateSANExt(Collections.singletonList("SM2TEST")), caKeyPair.getPublic(), caKeyPair.getPrivate(), SM2.SIGNATURE_SM3_WITH_SM2);
+            skf.importCertificate(hContainer, true, sm2ENC.getEncoded());
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (Objects.nonNull(skf)) {
+                if (Objects.nonNull(hApplication)) {
+                    skf.closeContainer(hContainer);
+                }
+                if (Objects.nonNull(hApplication)) {
+                    skf.closeApplication(hApplication);
+                }
+                if (Objects.nonNull(hDev)) {
+                    skf.disConnectDev(hDev);
+                }
+            }
+        }
+    }
+
+}

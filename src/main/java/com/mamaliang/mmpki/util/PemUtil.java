@@ -15,6 +15,7 @@ import java.io.StringWriter;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 
@@ -34,6 +35,10 @@ public class PemUtil {
 
     public static String privateKey2pem(PrivateKey privateKey) throws IOException {
         return object2pem(PEMParser.TYPE_PRIVATE_KEY, privateKey.getEncoded());
+    }
+
+    public static String publicKey2pem(PublicKey publicKey) throws IOException {
+        return object2pem(PEMParser.TYPE_PUBLIC_KEY, publicKey.getEncoded());
     }
 
     private static String object2pem(String type, byte[] encode) throws IOException {

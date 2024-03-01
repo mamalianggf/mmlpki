@@ -43,10 +43,14 @@ public class EnvelopedUtil {
      * @param eccEnvelopedKeyBlobBase64 信封内容
      * @param signPrivateKey            签名私钥
      */
-    public static BCECPrivateKey disassemble(String eccEnvelopedKeyBlobBase64, BCECPrivateKey signPrivateKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException {
+    public static BCECPrivateKey disassembleFront(String eccEnvelopedKeyBlobBase64, BCECPrivateKey signPrivateKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException {
         byte[] eccEnvelopedKeyBlobBytes = Base64.getDecoder().decode(eccEnvelopedKeyBlobBase64.getBytes(StandardCharsets.UTF_8));
-        ECCEnvelopedKeyBlob eccEnvelopedKeyBlob = ECCEnvelopedKeyBlob.decode(eccEnvelopedKeyBlobBytes);
+        SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob = SKF_ENVELOPEDKEYBLOB.decode(eccEnvelopedKeyBlobBytes);
 
+        return disassembleBackend(eccEnvelopedKeyBlob, signPrivateKey);
+    }
+
+    public static BCECPrivateKey disassembleBackend(SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob, BCECPrivateKey signPrivateKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException {
         // 组装密文
         byte[] encryptData = constructEncryptData(eccEnvelopedKeyBlob);
 
@@ -57,7 +61,7 @@ public class EnvelopedUtil {
         SecretKey key = new SecretKeySpec(symmKey, "SM4");
         byte[] encPrivateKeyBytes = SM4.ecbDecrypt(key, symmKey);
 
-        return SM2.generatePrivateKey(encPrivateKeyBytes);
+        return SM2.convert2PrivateKey(encPrivateKeyBytes);
     }
 
     /**
@@ -69,27 +73,34 @@ public class EnvelopedUtil {
      * @return 信封base64
      * @throws Exception
      */
-    public static String assemble(BCECPrivateKey encPrivateKey, BCECPublicKey encPublicKey, BCECPublicKey signPublicKey) throws Exception {
+    public static String assembleFront(BCECPrivateKey encPrivateKey, BCECPublicKey encPublicKey, BCECPublicKey signPublicKey) throws Exception {
+
+        SKF_ENVELOPEDKEYBLOB skfEnvelopedkeyblob = assembleBackend(encPrivateKey, encPublicKey, signPublicKey);
+
+        return new String(Base64.getEncoder().encode(SKF_ENVELOPEDKEYBLOB.encode(skfEnvelopedkeyblob)), StandardCharsets.UTF_8);
+    }
+
+    public static SKF_ENVELOPEDKEYBLOB assembleBackend(BCECPrivateKey encPrivateKey, BCECPublicKey encPublicKey, BCECPublicKey signPublicKey) throws Exception {
         // 加密私钥中提取 d
         BigInteger d = encPrivateKey.getD();
         byte[] dBytes = d.toByteArray();
-        if (dBytes[0] == 0x00) {
+        if (dBytes[0] == 0x00) {// d一定是正数
             dBytes = deleteTheFirstByte(dBytes);
         }
         // 对称密钥 加密 d
         SecretKey symmKey = SM4.generateKey();
         byte[] cbEncryptedPrivKey = SM4.ecbEncrypt(symmKey, dBytes);
-        if (cbEncryptedPrivKey.length < 64) {
-            // 不足64bit,补全至64bit
-            byte[] temp = new byte[64];
-            System.arraycopy(cbEncryptedPrivKey, 0, temp, temp.length - cbEncryptedPrivKey.length, cbEncryptedPrivKey.length);
-            cbEncryptedPrivKey = temp;
-        }
-
+        // 不足64bit,补全至64bit
+        cbEncryptedPrivKey = completeByteArray(cbEncryptedPrivKey, 64);
         // 签名公钥加密加密私钥
         byte[] symmKeyBytes = symmKey.getEncoded();
         byte[] encryptedSymmKeyBytes = SM2.encrypt(signPublicKey, symmKeyBytes);
-        ECCPublicKeyBlob eccPublicKeyBlob = new ECCPublicKeyBlob(256, encPublicKey.getQ().getAffineXCoord().getEncoded(), encPublicKey.getQ().getAffineYCoord().getEncoded());
+
+        byte[] x = encPublicKey.getQ().getAffineXCoord().getEncoded();
+        x = completeByteArray(x, 64);
+        byte[] y = encPublicKey.getQ().getAffineYCoord().getEncoded();
+        y = completeByteArray(x, 64);
+        Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = new Struct_ECCPUBLICKEYBLOB(256, x, y);
 
         if (encryptedSymmKeyBytes[0] == 0x04) {
             encryptedSymmKeyBytes = deleteTheFirstByte(encryptedSymmKeyBytes);
@@ -103,17 +114,17 @@ public class EnvelopedUtil {
         bb.get(c3);
         byte[] c2 = new byte[bb.remaining()];
         bb.get(c2);
-        ECCCipherBlob eccCipherBlob = new ECCCipherBlob(c1x, c1y, c3, c2.length, c2);
+        c1x = completeByteArray(c1x, 64);
+        c1y = completeByteArray(c1y, 64);
+        Struct_ECCCIPHERBLOB eccCipherBlob = new Struct_ECCCIPHERBLOB(c1x, c1y, c3, c2.length, c2);
 
-        ECCEnvelopedKeyBlob eccEnvelopedKeyBlob = new ECCEnvelopedKeyBlob(ECCEnvelopedKeyBlob.VERSION, AlgorithmID.SGD_SM4_ECB, 256, cbEncryptedPrivKey, eccPublicKeyBlob, eccCipherBlob);
-
-        return new String(Base64.getEncoder().encode(ECCEnvelopedKeyBlob.encode(eccEnvelopedKeyBlob)), StandardCharsets.UTF_8);
+        return new SKF_ENVELOPEDKEYBLOB(SKF_ENVELOPEDKEYBLOB.VERSION, AlgorithmID.SGD_SM4_ECB, 256, cbEncryptedPrivKey, eccPublicKeyBlob, eccCipherBlob);
     }
 
     public static String convertAnXinCa0010(SignedAndEnvelopedData signedAndEnvelopedData, BCECPublicKey bcecPublicKey) {
         RecipientInfo recipientInfo = RecipientInfo.getInstance(signedAndEnvelopedData.getRecipientInfos().getObjectAt(0));
         ASN1Encodable asn1Encodable = recipientInfo.getInfo();
-        ECCCipherBlob eccCipherBlob = null;
+        Struct_ECCCIPHERBLOB eccCipherBlob = null;
         if (asn1Encodable instanceof KeyTransRecipientInfo) {
             KeyTransRecipientInfo keyTransRecipientInfo = (KeyTransRecipientInfo) asn1Encodable;
             // 加密的对称密钥 SM2cipher
@@ -129,7 +140,9 @@ public class EnvelopedUtil {
             }
             byte[] hash = sm2Cipher.getHash().getOctets();
             byte[] cipher = sm2Cipher.getCipher().getOctets();
-            eccCipherBlob = new ECCCipherBlob(x, y, hash, cipher.length, cipher);
+            x = completeByteArray(x, 64);
+            y = completeByteArray(y, 64);
+            eccCipherBlob = new Struct_ECCCIPHERBLOB(x, y, hash, cipher.length, cipher);
         } else {
             throw new IllegalArgumentException("RecipientInfo not KeyTransRecipientInfo");
         }
@@ -140,10 +153,12 @@ public class EnvelopedUtil {
         ECPoint q = bcecPublicKey.getQ();
         byte[] x = q.getXCoord().getEncoded();
         byte[] y = q.getYCoord().getEncoded();
-        ECCPublicKeyBlob eccPublicKeyBlob = new ECCPublicKeyBlob(256, x, y);
+        x = completeByteArray(x, 64);
+        y = completeByteArray(y, 64);
+        Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = new Struct_ECCPUBLICKEYBLOB(256, x, y);
 
-        ECCEnvelopedKeyBlob eccEnvelopedKeyBlob = new ECCEnvelopedKeyBlob(ECCEnvelopedKeyBlob.VERSION, AlgorithmID.SGD_SM4_ECB, 256, encryptedPrivateKey, eccPublicKeyBlob, eccCipherBlob);
-        return new String(Base64.getEncoder().encode(ECCEnvelopedKeyBlob.encode(eccEnvelopedKeyBlob)), StandardCharsets.UTF_8);
+        SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob = new SKF_ENVELOPEDKEYBLOB(SKF_ENVELOPEDKEYBLOB.VERSION, AlgorithmID.SGD_SM4_ECB, 256, encryptedPrivateKey, eccPublicKeyBlob, eccCipherBlob);
+        return new String(Base64.getEncoder().encode(SKF_ENVELOPEDKEYBLOB.encode(eccEnvelopedKeyBlob)), StandardCharsets.UTF_8);
     }
 
     public static String convert0009(SM2EnvelopedKey sm2EnvelopedKey) {
@@ -152,16 +167,14 @@ public class EnvelopedUtil {
         byte[] y = sm2Cipher.getY().getValue().toByteArray();
         byte[] hash = sm2Cipher.getHash().getOctets();
         byte[] cipher = sm2Cipher.getCipher().getOctets();
-        ECCCipherBlob eccCipherBlob = new ECCCipherBlob(x, y, hash, cipher.length, cipher);
+        x = completeByteArray(x, 64);
+        y = completeByteArray(y, 64);
+        Struct_ECCCIPHERBLOB eccCipherBlob = new Struct_ECCCIPHERBLOB(x, y, hash, cipher.length, cipher);
 
         // 对称密钥加密的加密私钥
         byte[] encryptedPrivateKey = sm2EnvelopedKey.getSm2EncryptedPrivateKey().getOctets();
-        if (encryptedPrivateKey.length < 64) {
-            // 不足64bit,补全至64bit
-            byte[] temp = new byte[64];
-            System.arraycopy(encryptedPrivateKey, 0, temp, temp.length - encryptedPrivateKey.length, encryptedPrivateKey.length);
-            encryptedPrivateKey = temp;
-        }
+        // 不足64bit,补全至64bit
+        encryptedPrivateKey = completeByteArray(encryptedPrivateKey, 64);
 
         byte[] sm2PublicKey = sm2EnvelopedKey.getSm2PublicKey().getOctets();
         if (sm2PublicKey.length != 65) {
@@ -174,19 +187,21 @@ public class EnvelopedUtil {
         byte[] qy = new byte[32];
         System.arraycopy(sm2PublicKey, 1, qx, 0, 32);
         System.arraycopy(sm2PublicKey, 33, qy, 0, 32);
-        ECCPublicKeyBlob eccPublicKeyBlob = new ECCPublicKeyBlob(256, qx, qy);
+        qx = completeByteArray(qx, 64);
+        qy = completeByteArray(qy, 64);
+        Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = new Struct_ECCPUBLICKEYBLOB(256, qx, qy);
 
-        ECCEnvelopedKeyBlob eccEnvelopedKeyBlob = new ECCEnvelopedKeyBlob(ECCEnvelopedKeyBlob.VERSION, AlgorithmID.SGD_SM4_ECB, 256, encryptedPrivateKey, eccPublicKeyBlob, eccCipherBlob);
-        return new String(Base64.getEncoder().encode(ECCEnvelopedKeyBlob.encode(eccEnvelopedKeyBlob)), StandardCharsets.UTF_8);
+        SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob = new SKF_ENVELOPEDKEYBLOB(SKF_ENVELOPEDKEYBLOB.VERSION, AlgorithmID.SGD_SM4_ECB, 256, encryptedPrivateKey, eccPublicKeyBlob, eccCipherBlob);
+        return new String(Base64.getEncoder().encode(SKF_ENVELOPEDKEYBLOB.encode(eccEnvelopedKeyBlob)), StandardCharsets.UTF_8);
     }
 
 
-    private static byte[] constructEncryptData(ECCEnvelopedKeyBlob eccEnvelopedKeyBlob) {
-        ECCCipherBlob eccCipherBlob = eccEnvelopedKeyBlob.getEccCipherBlob();
-        byte[] x = eccCipherBlob.getxCoordinate();
-        byte[] y = eccCipherBlob.getyCoordinate();
-        byte[] c3 = eccCipherBlob.getHash();
-        byte[] c2 = eccCipherBlob.getCipher();
+    private static byte[] constructEncryptData(SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob) {
+        Struct_ECCCIPHERBLOB eccCipherBlob = eccEnvelopedKeyBlob.eccCipherBlob;
+        byte[] x = eccCipherBlob.xCoordinate;
+        byte[] y = eccCipherBlob.yCoordinate;
+        byte[] c3 = eccCipherBlob.hash;
+        byte[] c2 = eccCipherBlob.cipher;
 
         ByteBuffer bb = ByteBuffer.allocate(1 + x.length + y.length + c3.length + c2.length);
         byte notCompress = 0x04;
@@ -206,4 +221,15 @@ public class EnvelopedUtil {
         return temp;
     }
 
+    /**
+     * 补全位数至goal
+     */
+    private static byte[] completeByteArray(byte[] bytes, int goal) {
+        if (bytes.length < goal) {
+            byte[] temp = new byte[goal];
+            System.arraycopy(bytes, 0, temp, temp.length - bytes.length, bytes.length);
+            return temp;
+        }
+        return bytes;
+    }
 }

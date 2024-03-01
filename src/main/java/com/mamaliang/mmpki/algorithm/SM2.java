@@ -12,17 +12,21 @@ import org.bouncycastle.crypto.params.ParametersWithRandom;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.math.ec.ECPoint;
 
 import java.math.BigInteger;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
-import java.security.spec.InvalidKeySpecException;
 
 /**
+ * {@link GMObjectIdentifiers}
+ *
  * @author gaof
  * @date 2023/10/31
  */
 public class SM2 {
+
+    public static final String ALGORITHM = "EC";
 
     public static final String CURVE_NAME = "sm2p256v1";
 
@@ -31,17 +35,27 @@ public class SM2 {
     public static KeyPair generateKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         ECGenParameterSpec sm2Spec = new ECGenParameterSpec(CURVE_NAME);
         SecureRandom secureRandom = new SecureRandom();
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", new BouncyCastleProvider());
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM, new BouncyCastleProvider());
         keyPairGenerator.initialize(sm2Spec, secureRandom);
         return keyPairGenerator.generateKeyPair();
     }
 
-    public static BCECPrivateKey generatePrivateKey(byte[] dBytes) {
+    public static BCECPrivateKey convert2PrivateKey(byte[] d) {
         X9ECParameters sm2ECParameters = GMNamedCurves.getByName(CURVE_NAME);
         ECDomainParameters ecDomainParameters = new ECDomainParameters(sm2ECParameters.getCurve(), sm2ECParameters.getG(), sm2ECParameters.getN());
-        BigInteger d = new BigInteger(1, dBytes);
-        ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(d, ecDomainParameters);
-        return new BCECPrivateKey("EC", ecPrivateKeyParameters, BouncyCastleProvider.CONFIGURATION);
+        ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(new BigInteger(1, d), ecDomainParameters);
+        return new BCECPrivateKey(ALGORITHM, ecPrivateKeyParameters, BouncyCastleProvider.CONFIGURATION);
+    }
+
+    /**
+     * X,Y 32/64位都可以,且都是正数
+     */
+    public static BCECPublicKey convert2PublicKey(byte[] x, byte[] y) {
+        X9ECParameters sm2ECParameters = GMNamedCurves.getByName(CURVE_NAME);
+        ECDomainParameters ecDomainParameters = new ECDomainParameters(sm2ECParameters.getCurve(), sm2ECParameters.getG(), sm2ECParameters.getN());
+        ECPoint point = sm2ECParameters.getCurve().createPoint(new BigInteger(x), new BigInteger(y));
+        ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(point, ecDomainParameters);
+        return new BCECPublicKey(ALGORITHM, ecPublicKeyParameters, BouncyCastleProvider.CONFIGURATION);
     }
 
     public static byte[] encrypt(BCECPublicKey publicKey, byte[] plainText) throws InvalidCipherTextException {
@@ -72,7 +86,7 @@ public class SM2 {
         return signature.sign();
     }
 
-    public static boolean verify(BCECPublicKey publicKey, byte[] plainText, byte[] signatureText) throws NoSuchAlgorithmException, InvalidKeySpecException,
+    public static boolean verify(BCECPublicKey publicKey, byte[] plainText, byte[] signatureText) throws NoSuchAlgorithmException,
             InvalidKeyException, SignatureException {
         Signature signature = Signature.getInstance(GMObjectIdentifiers.sm2sign_with_sm3.toString(), new BouncyCastleProvider());
         signature.initVerify(publicKey);

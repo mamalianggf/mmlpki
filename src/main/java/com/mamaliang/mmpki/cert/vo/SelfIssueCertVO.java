@@ -1,5 +1,9 @@
 package com.mamaliang.mmpki.cert.vo;
 
+import lombok.Getter;
+import lombok.Setter;
+import org.bouncycastle.asn1.x500.X500Name;
+
 import java.util.Date;
 import java.util.List;
 
@@ -7,7 +11,9 @@ import java.util.List;
  * @author gaof
  * @date 2023/11/17
  */
-public class SelfIssueCertVO extends X500NameVO{
+@Getter
+@Setter
+public class SelfIssueCertVO {
 
     private boolean isCa;
 
@@ -15,38 +21,8 @@ public class SelfIssueCertVO extends X500NameVO{
 
     private Date notAfter;
 
+    private X500Name subjectDn;
+
     private List<String> subjectAltNames;
-
-    public boolean isCa() {
-        return isCa;
-    }
-
-    public void setCa(boolean ca) {
-        isCa = ca;
-    }
-
-    public Date getNotBefore() {
-        return notBefore;
-    }
-
-    public void setNotBefore(Date notBefore) {
-        this.notBefore = notBefore;
-    }
-
-    public Date getNotAfter() {
-        return notAfter;
-    }
-
-    public void setNotAfter(Date notAfter) {
-        this.notAfter = notAfter;
-    }
-
-    public List<String> getSubjectAltNames() {
-        return subjectAltNames;
-    }
-
-    public void setSubjectAltNames(List<String> subjectAltNames) {
-        this.subjectAltNames = subjectAltNames;
-    }
 
 }

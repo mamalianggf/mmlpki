@@ -1,5 +1,6 @@
 package com.mamaliang.mmpki.util;
 
+import org.bouncycastle.asn1.crmf.*;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
@@ -82,6 +83,18 @@ public class CSRUtil {
             }
         }
         return new GeneralNames(sans);
+    }
+
+
+    public static CertReqMessages generateCertReqMessages(X500Name subjectDn, SubjectPublicKeyInfo subjectPublicKeyInfo, AlgorithmIdentifier aid) {
+        CertTemplateBuilder certTemplateBuilder = new CertTemplateBuilder();
+        CertTemplate certTemplate = certTemplateBuilder.setSubject(subjectDn)
+                .setPublicKey(subjectPublicKeyInfo)
+                .setSigningAlg(aid)
+                .build();
+        CertRequest certRequest = new CertRequest(1, certTemplate, null);
+        CertReqMsg certReqMsg = new CertReqMsg(certRequest, null, null);
+        return new CertReqMessages(certReqMsg);
     }
 
 }

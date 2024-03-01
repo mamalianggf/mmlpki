@@ -34,7 +34,7 @@ public class SM2CertServiceImpl implements CertService {
         try {
             KeyPair keyPair = SM2.generateKeyPair();
             boolean isCa = vo.isCa();
-            X500Name dn = vo.generateX500Name();
+            X500Name dn = vo.getSubjectDn();
             Date notBefore = vo.getNotBefore();
             Date notAfter = vo.getNotAfter();
             List<String> sans = vo.getSubjectAltNames();
@@ -53,7 +53,7 @@ public class SM2CertServiceImpl implements CertService {
             KeyPair sigKeyPair = SM2.generateKeyPair();
             KeyPair encKeyPair = SM2.generateKeyPair();
             boolean isCa = vo.isCa();
-            X500Name dn = vo.generateX500Name();
+            X500Name dn = vo.getSubjectDn();
             Date notBefore = vo.getNotBefore();
             Date notAfter = vo.getNotAfter();
             List<String> sans = vo.getSubjectAltNames();
@@ -149,7 +149,7 @@ public class SM2CertServiceImpl implements CertService {
             String sigCertPem = PemUtil.cert2pem(sigCert);
             String encCertPem = PemUtil.cert2pem(encCert);
 
-            String envelop = EnvelopedUtil.assemble((BCECPrivateKey) encKeyPair.getPrivate(), (BCECPublicKey) encKeyPair.getPublic(), (BCECPublicKey) sigSubjectPublicKey);
+            String envelop = EnvelopedUtil.assembleFront((BCECPrivateKey) encKeyPair.getPrivate(), (BCECPublicKey) encKeyPair.getPublic(), (BCECPublicKey) sigSubjectPublicKey);
             return new String[]{sigCertPem, encCertPem, envelop};
         } catch (Exception e) {
             throw new RuntimeException("自签发SM2密钥不落地证书失败", e);

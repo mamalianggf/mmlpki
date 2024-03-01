@@ -13,6 +13,8 @@ import java.security.spec.ECGenParameterSpec;
  */
 public class ECC {
 
+    public static final String ALGORITHM = "EC";
+
     public static final String CURVE_NAME = "secp256r1";
 
     public static final String SIGNATURE_SHA256_WITH_ECDSA = "SHA256withECDSA";
@@ -20,7 +22,7 @@ public class ECC {
     public static KeyPair generateKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         ECGenParameterSpec sm2Spec = new ECGenParameterSpec(CURVE_NAME);
         SecureRandom secureRandom = new SecureRandom();
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", new BouncyCastleProvider());
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM, new BouncyCastleProvider());
         keyPairGenerator.initialize(sm2Spec, secureRandom);
         return keyPairGenerator.generateKeyPair();
     }

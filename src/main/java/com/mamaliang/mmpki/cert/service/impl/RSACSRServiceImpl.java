@@ -21,7 +21,7 @@ public class RSACSRServiceImpl implements CSRService {
     public String[] generateCSR(CSRVO vo) {
         try {
             KeyPair keyPair = RSA.generateKeyPair(RSA.DEFAULT_KEY_SIZE);
-            PKCS10CertificationRequest p10 = CSRUtil.generateCSR(vo.generateX500Name(), vo.getSubjectAltNames(), keyPair, RSA.SIGNATURE_SHA256_WITH_RSA);
+            PKCS10CertificationRequest p10 = CSRUtil.generateCSR(vo.getSubjectDn(), vo.getSubjectAltNames(), keyPair, RSA.SIGNATURE_SHA256_WITH_RSA);
             String csrPem = PemUtil.csr2pem(p10);
             String privateKeyPem = PemUtil.privateKey2pem(keyPair.getPrivate());
             return new String[]{csrPem, privateKeyPem};

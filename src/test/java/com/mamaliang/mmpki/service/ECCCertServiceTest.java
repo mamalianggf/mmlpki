@@ -6,7 +6,9 @@ import com.mamaliang.mmpki.cert.vo.CSRVO;
 import com.mamaliang.mmpki.cert.vo.CaIssueCertVO;
 import com.mamaliang.mmpki.cert.vo.SelfIssueCertVO;
 import com.mamaliang.mmpki.util.PemUtil;
+import com.mamaliang.mmpki.util.X500NameUtil;
 import org.bouncycastle.asn1.x500.RDN;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.junit.jupiter.api.Assertions;
@@ -35,12 +37,8 @@ class ECCCertServiceTest {
     @Test
     void testSelfIssueSiteCertificate() throws IOException {
         SelfIssueCertVO vo = new SelfIssueCertVO();
-        vo.setCountry("CN");
-        vo.setStateOrProvince("SH");
-        vo.setLocality("SH");
-        vo.setOrganization("FUTURE");
-        vo.setOrganizationUnit("FUTURE");
-        vo.setCommonName("www.site.com");
+        X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
+        vo.setSubjectDn(siteDn);
         vo.setCa(false);
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
@@ -60,26 +58,18 @@ class ECCCertServiceTest {
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
 
         SelfIssueCertVO svo = new SelfIssueCertVO();
-        svo.setCountry("CN");
-        svo.setStateOrProvince("SH");
-        svo.setLocality("SH");
-        svo.setOrganization("FUTURE");
-        svo.setOrganizationUnit("FUTURE");
-        svo.setCommonName("ECCROOTCA");
         svo.setCa(false);
         svo.setNotBefore(notBefore);
         svo.setNotAfter(notAfter);
+        X500Name caDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "ECCROOTCA");
+        svo.setSubjectDn(caDn);
         svo.setSubjectAltNames(Collections.singletonList("ECCROOTCA"));
         String[] caMaterials = certService.selfIssueSingleCert(svo);
 
 
         CSRVO csrvo = new CSRVO();
-        csrvo.setCountry("CN");
-        csrvo.setStateOrProvince("SH");
-        csrvo.setLocality("SH");
-        csrvo.setOrganization("FUTURE");
-        csrvo.setOrganizationUnit("FUTURE");
-        csrvo.setCommonName("www.site.com");
+        X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
+        csrvo.setSubjectDn(siteDn);
         List<String> sans = Collections.singletonList("www.site.com");
         csrvo.setSubjectAltNames(sans);
         String[] csrMaterials = csrService.generateCSR(csrvo);

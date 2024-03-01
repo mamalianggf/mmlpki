@@ -21,7 +21,7 @@ public class SM2CSRServiceImpl implements CSRService {
     public String[] generateCSR(CSRVO vo) {
         try {
             KeyPair keyPair = SM2.generateKeyPair();
-            PKCS10CertificationRequest p10 = CSRUtil.generateCSR(vo.generateX500Name(), vo.getSubjectAltNames(), keyPair, SM2.SIGNATURE_SM3_WITH_SM2);
+            PKCS10CertificationRequest p10 = CSRUtil.generateCSR(vo.getSubjectDn(), vo.getSubjectAltNames(), keyPair, SM2.SIGNATURE_SM3_WITH_SM2);
             String csrPem = PemUtil.csr2pem(p10);
             String privateKeyPem = PemUtil.privateKey2pem(keyPair.getPrivate());
             return new String[]{csrPem, privateKeyPem};

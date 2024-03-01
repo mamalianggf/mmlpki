@@ -21,7 +21,7 @@ public class ECCCSRServiceImpl implements CSRService {
     public String[] generateCSR(CSRVO vo) {
         try {
             KeyPair keyPair = ECC.generateKeyPair();
-            PKCS10CertificationRequest p10 = CSRUtil.generateCSR(vo.generateX500Name(), vo.getSubjectAltNames(), keyPair, ECC.SIGNATURE_SHA256_WITH_ECDSA);
+            PKCS10CertificationRequest p10 = CSRUtil.generateCSR(vo.getSubjectDn(), vo.getSubjectAltNames(), keyPair, ECC.SIGNATURE_SHA256_WITH_ECDSA);
             String csrPem = PemUtil.csr2pem(p10);
             String privateKeyPem = PemUtil.privateKey2pem(keyPair.getPrivate());
             return new String[]{csrPem, privateKeyPem};

@@ -31,7 +31,7 @@ public class ECCCertServiceImpl implements CertService {
         try {
             KeyPair keyPair = ECC.generateKeyPair();
             boolean isCa = vo.isCa();
-            X500Name dn = vo.generateX500Name();
+            X500Name dn = vo.getSubjectDn();
             Date notBefore = vo.getNotBefore();
             Date notAfter = vo.getNotAfter();
             List<String> sans = vo.getSubjectAltNames();

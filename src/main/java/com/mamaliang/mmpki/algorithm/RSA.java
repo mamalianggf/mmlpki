@@ -13,12 +13,14 @@ import java.security.SecureRandom;
  */
 public class RSA {
 
+    public static final String ALGORITHM = "RSA";
+
     public static final int DEFAULT_KEY_SIZE = 2048;
 
     public static final String SIGNATURE_SHA256_WITH_RSA = "SHA256withRSA";
 
     public static KeyPair generateKeyPair(int keySize) throws NoSuchAlgorithmException {
-        KeyPairGenerator keyPairGenerate = KeyPairGenerator.getInstance("RSA", new BouncyCastleProvider());
+        KeyPairGenerator keyPairGenerate = KeyPairGenerator.getInstance(ALGORITHM, new BouncyCastleProvider());
         SecureRandom secureRandom = new SecureRandom();
         keyPairGenerate.initialize(keySize, secureRandom);
         return keyPairGenerate.generateKeyPair();
