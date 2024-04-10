@@ -1,4 +1,4 @@
-package com.mamaliang.mmpki.service;
+package com.mamaliang.mmpki.test;
 
 import com.mamaliang.mmpki.cert.service.CSRService;
 import com.mamaliang.mmpki.cert.service.CertService;
@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
@@ -24,13 +25,13 @@ import java.util.List;
 
 
 @SpringBootTest
-class ECCCertServiceTest {
+class RSACertServiceTest {
 
-    @Qualifier("ECCCertService")
+    @Qualifier("RSACertService")
     @Autowired
     private CertService certService;
 
-    @Qualifier("ECCCSRService")
+    @Qualifier("RSACSRService")
     @Autowired
     private CSRService csrService;
 
@@ -61,11 +62,10 @@ class ECCCertServiceTest {
         svo.setCa(false);
         svo.setNotBefore(notBefore);
         svo.setNotAfter(notAfter);
-        X500Name caDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "ECCROOTCA");
+        X500Name caDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "RSAROOTCA");
         svo.setSubjectDn(caDn);
-        svo.setSubjectAltNames(Collections.singletonList("ECCROOTCA"));
+        svo.setSubjectAltNames(Collections.singletonList("RSAROOTCA"));
         String[] caMaterials = certService.selfIssueSingleCert(svo);
-
 
         CSRVO csrvo = new CSRVO();
         X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
@@ -73,7 +73,6 @@ class ECCCertServiceTest {
         List<String> sans = Collections.singletonList("www.site.com");
         csrvo.setSubjectAltNames(sans);
         String[] csrMaterials = csrService.generateCSR(csrvo);
-
 
         CaIssueCertVO cvo = new CaIssueCertVO();
         cvo.setCa(false);

@@ -1,6 +1,10 @@
-package com.mamaliang.mmpki.gmt0016;
+package com.mamaliang.mmpki.nsagTool;
 
 import com.mamaliang.mmpki.algorithm.SM2;
+import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
+import com.mamaliang.mmpki.gmt0016.SKFLibraryWrapper;
+import com.mamaliang.mmpki.gmt0016.SKF_ENVELOPEDKEYBLOB;
+import com.mamaliang.mmpki.gmt0016.Struct_ECCPUBLICKEYBLOB;
 import com.mamaliang.mmpki.util.CertUtil;
 import com.mamaliang.mmpki.util.X500NameUtil;
 import com.sun.jna.Pointer;
@@ -23,7 +27,7 @@ import java.util.Objects;
  * @author gaof
  * @date 2024/1/5
  */
-//@Disabled
+@Disabled
 public class GM3000Test {
 
     @Test

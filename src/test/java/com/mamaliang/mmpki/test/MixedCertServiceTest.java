@@ -1,4 +1,4 @@
-package com.mamaliang.mmpki.service;
+package com.mamaliang.mmpki.test;
 
 import com.mamaliang.mmpki.cert.service.impl.RSACSRServiceImpl;
 import com.mamaliang.mmpki.cert.service.impl.RSACertServiceImpl;

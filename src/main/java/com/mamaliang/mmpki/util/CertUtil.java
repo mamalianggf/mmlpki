@@ -29,7 +29,7 @@ public class CertUtil {
     public static Certificate selfIssueCert(boolean isCa, boolean isSig, boolean isEnc, String country, String stateOrProvince, String locality, String organization, String organizationUnit, String commonName, Date notBefore, Date notAfter, List<String> subjectAltNames, KeyPair keyPair, String signatureAlgorithm) throws OperatorCreationException, IOException, NoSuchAlgorithmException {
         X500Name dn = generateX500Name(country, stateOrProvince, locality, organization, organizationUnit, commonName);
         Extension bc = generateBasicConstraintsExt(isCa);
-        Extension keyUsage = generateKeyUsageExt(isSig, isEnc);
+        Extension keyUsage = generateKeyUsageExt(isCa, isSig, isEnc);
         Extension sans = generateSANExt(subjectAltNames);
         Extension kp = generateExtKeyUsageExt();
         Extension ski = generateSubjectKeyIdentifierExt(keyPair.getPublic());
@@ -40,7 +40,7 @@ public class CertUtil {
 
     public static Certificate selfIssueCert(boolean isCa, boolean isSig, boolean isEnc, X500Name dn, Date notBefore, Date notAfter, List<String> subjectAltNames, KeyPair keyPair, String signatureAlgorithm) throws OperatorCreationException, IOException, NoSuchAlgorithmException {
         Extension bc = generateBasicConstraintsExt(isCa);
-        Extension keyUsage = generateKeyUsageExt(isSig, isEnc);
+        Extension keyUsage = generateKeyUsageExt(isCa, isSig, isEnc);
         Extension sans = generateSANExt(subjectAltNames);
         Extension kp = generateExtKeyUsageExt();
         Extension ski = generateSubjectKeyIdentifierExt(keyPair.getPublic());
@@ -52,7 +52,7 @@ public class CertUtil {
     public static Certificate caIssueCert(boolean isCa, boolean isSig, boolean isEnc, String country, String stateOrProvince, String locality, String organization, String organizationUnit, String commonName, PublicKey subjectPublicKey, Date notBefore, Date notAfter, X500Name issuerDn, Extension sans, PublicKey issuerPublicKey, PrivateKey issuerPrivateKey, String signatureAlgorithm) throws OperatorCreationException, IOException, NoSuchAlgorithmException {
         X500Name subjectDn = generateX500Name(country, stateOrProvince, locality, organization, organizationUnit, commonName);
         Extension bc = generateBasicConstraintsExt(isCa);
-        Extension keyUsage = generateKeyUsageExt(isSig, isEnc);
+        Extension keyUsage = generateKeyUsageExt(isCa, isSig, isEnc);
         Extension kp = generateExtKeyUsageExt();
         Extension ski = generateSubjectKeyIdentifierExt(subjectPublicKey);
         Extension aki = generateAuthorityKeyIdentifierExt(issuerPublicKey);
@@ -62,7 +62,7 @@ public class CertUtil {
 
     public static Certificate caIssueCert(boolean isCa, boolean isSig, boolean isEnc, X500Name subjectDn, PublicKey subjectPublicKey, Date notBefore, Date notAfter, X500Name issuerDn, Extension sans, PublicKey issuerPublicKey, PrivateKey issuerPrivateKey, String signatureAlgorithm) throws OperatorCreationException, IOException, NoSuchAlgorithmException {
         Extension bc = generateBasicConstraintsExt(isCa);
-        Extension keyUsage = generateKeyUsageExt(isSig, isEnc);
+        Extension keyUsage = generateKeyUsageExt(isCa, isSig, isEnc);
         Extension kp = generateExtKeyUsageExt();
         Extension ski = generateSubjectKeyIdentifierExt(subjectPublicKey);
         Extension aki = generateAuthorityKeyIdentifierExt(issuerPublicKey);
@@ -120,14 +120,16 @@ public class CertUtil {
         return Extension.create(Extension.basicConstraints, true, new BasicConstraints(isCa));
     }
 
-    private static Extension generateKeyUsageExt(boolean isSig, boolean isEnc) throws IOException {
+    private static Extension generateKeyUsageExt(boolean isCa, boolean isSig, boolean isEnc) throws IOException {
         KeyUsage keyUsage;
-        if (isSig & isEnc) {
+        if (isCa) {
+            keyUsage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
+        } else if (isSig & isEnc) {
             keyUsage = new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment | KeyUsage.nonRepudiation);
         } else if (isSig) {
             keyUsage = new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation);
         } else if (isEnc) {
-            keyUsage = new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.nonRepudiation);
+            keyUsage = new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment);
         } else {
             keyUsage = new KeyUsage(KeyUsage.nonRepudiation);
         }
@@ -148,7 +150,7 @@ public class CertUtil {
     }
 
     private static Extension generateExtKeyUsageExt() throws IOException {
-        ExtendedKeyUsage extendedKeyUsage = new ExtendedKeyUsage(KeyPurposeId.anyExtendedKeyUsage);
+        ExtendedKeyUsage extendedKeyUsage = new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth});
         return Extension.create(Extension.extendedKeyUsage, true, extendedKeyUsage);
     }
 

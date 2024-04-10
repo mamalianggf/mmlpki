@@ -59,7 +59,10 @@ public class EnvelopedUtil {
 
         // 依靠对称密码解出加密私钥
         SecretKey key = new SecretKeySpec(symmKey, "SM4");
-        byte[] encPrivateKeyBytes = SM4.ecbDecrypt(key, symmKey);
+        // 由于d是32位,且由组装时扩充到64位所以,这里需要移除前面所有的0
+        byte[] tempCbEncryptedPrivKey = new byte[32];
+        System.arraycopy(eccEnvelopedKeyBlob.cbEncryptedPrivKey, 32, tempCbEncryptedPrivKey, 0, 32);
+        byte[] encPrivateKeyBytes = SM4.ecbDecrypt(key, tempCbEncryptedPrivKey);
 
         return SM2.convert2PrivateKey(encPrivateKeyBytes);
     }
@@ -71,7 +74,6 @@ public class EnvelopedUtil {
      * @param encPublicKey  加密证书公钥
      * @param signPublicKey 签名证书公钥
      * @return 信封base64
-     * @throws Exception
      */
     public static String assembleFront(BCECPrivateKey encPrivateKey, BCECPublicKey encPublicKey, BCECPublicKey signPublicKey) throws Exception {
 
@@ -99,7 +101,7 @@ public class EnvelopedUtil {
         byte[] x = encPublicKey.getQ().getAffineXCoord().getEncoded();
         x = completeByteArray(x, 64);
         byte[] y = encPublicKey.getQ().getAffineYCoord().getEncoded();
-        y = completeByteArray(x, 64);
+        y = completeByteArray(y, 64);
         Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = new Struct_ECCPUBLICKEYBLOB(256, x, y);
 
         if (encryptedSymmKeyBytes[0] == 0x04) {
@@ -124,9 +126,8 @@ public class EnvelopedUtil {
     public static String convertAnXinCa0010(SignedAndEnvelopedData signedAndEnvelopedData, BCECPublicKey bcecPublicKey) {
         RecipientInfo recipientInfo = RecipientInfo.getInstance(signedAndEnvelopedData.getRecipientInfos().getObjectAt(0));
         ASN1Encodable asn1Encodable = recipientInfo.getInfo();
-        Struct_ECCCIPHERBLOB eccCipherBlob = null;
-        if (asn1Encodable instanceof KeyTransRecipientInfo) {
-            KeyTransRecipientInfo keyTransRecipientInfo = (KeyTransRecipientInfo) asn1Encodable;
+        Struct_ECCCIPHERBLOB eccCipherBlob;
+        if (asn1Encodable instanceof KeyTransRecipientInfo keyTransRecipientInfo) {
             // 加密的对称密钥 SM2cipher
             ASN1OctetString encryptedKey = keyTransRecipientInfo.getEncryptedKey();
             SM2Cipher sm2Cipher = new SM2Cipher(ASN1Sequence.getInstance(encryptedKey.getOctets()));
@@ -199,17 +200,23 @@ public class EnvelopedUtil {
     private static byte[] constructEncryptData(SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob) {
         Struct_ECCCIPHERBLOB eccCipherBlob = eccEnvelopedKeyBlob.eccCipherBlob;
         byte[] x = eccCipherBlob.xCoordinate;
+        byte[] tempX = new byte[32];
+        System.arraycopy(x, 32, tempX, 0, 32);
         byte[] y = eccCipherBlob.yCoordinate;
+        byte[] tempY = new byte[32];
+        System.arraycopy(y, 32, tempY, 0, 32);
         byte[] c3 = eccCipherBlob.hash;
         byte[] c2 = eccCipherBlob.cipher;
+        byte[] tempC2 = new byte[eccCipherBlob.cipherLen];
+        System.arraycopy(c2, 0, tempC2, 0, eccCipherBlob.cipherLen);
 
-        ByteBuffer bb = ByteBuffer.allocate(1 + x.length + y.length + c3.length + c2.length);
+        ByteBuffer bb = ByteBuffer.allocate(1 + tempX.length + tempY.length + c3.length + tempC2.length);
         byte notCompress = 0x04;
         bb.put(notCompress);
-        bb.put(x);
-        bb.put(y);
+        bb.put(tempX);
+        bb.put(tempY);
         bb.put(c3);
-        bb.put(c2);
+        bb.put(tempC2);
         return bb.array();
     }
 
@@ -222,7 +229,7 @@ public class EnvelopedUtil {
     }
 
     /**
-     * 补全位数至goal
+     * 补全位数至goal,补前面
      */
     private static byte[] completeByteArray(byte[] bytes, int goal) {
         if (bytes.length < goal) {

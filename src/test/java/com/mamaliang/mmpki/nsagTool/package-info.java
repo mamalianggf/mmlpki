@@ -1,4 +1,4 @@
-package com.mamaliang.mmpki.nsag;
+package com.mamaliang.mmpki.nsagTool;
 
 /**
  * 用于nsag测试的相关代码

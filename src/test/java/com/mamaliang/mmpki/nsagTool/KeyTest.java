@@ -1,7 +1,8 @@
-package com.mamaliang.mmpki.nsag;
+package com.mamaliang.mmpki.nsagTool;
 
 import com.mamaliang.mmpki.algorithm.SM2;
 import com.mamaliang.mmpki.util.PemUtil;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileWriter;
@@ -14,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
  * @author gaof
  * @date 2024/1/17
  */
+@Disabled
 public class KeyTest {
 
     @Test

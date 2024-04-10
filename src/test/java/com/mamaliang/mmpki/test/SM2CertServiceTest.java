@@ -1,4 +1,4 @@
-package com.mamaliang.mmpki.service;
+package com.mamaliang.mmpki.test;
 
 import com.mamaliang.mmpki.cert.service.CSRService;
 import com.mamaliang.mmpki.cert.service.CertService;
@@ -152,6 +152,9 @@ public class SM2CertServiceTest {
         Certificate encCert = PemUtil.pem2Cert(materials[1]);
         RDN[] encRdNs = encCert.getSubject().getRDNs(BCStyle.CN);
         Assertions.assertEquals("www.site.com", encRdNs[0].getTypesAndValues()[0].getValue().toString());
+
+
+
     }
 
     @Test

@@ -1,25 +1,43 @@
-package com.mamaliang.mmpki.nsag;
+package com.mamaliang.mmpki.test;
 
+import com.mamaliang.mmpki.algorithm.SM2;
+import com.mamaliang.mmpki.cert.service.impl.SM2CSRServiceImpl;
+import com.mamaliang.mmpki.cert.service.impl.SM2CertServiceImpl;
+import com.mamaliang.mmpki.cert.vo.CSRVO;
+import com.mamaliang.mmpki.cert.vo.CaIssueCertVO;
+import com.mamaliang.mmpki.cert.vo.SelfIssueCertVO;
 import com.mamaliang.mmpki.gmt0009.SM2EnvelopedKey;
 import com.mamaliang.mmpki.gmt0010.SignedAndEnvelopedData;
 import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
+import com.mamaliang.mmpki.util.CertUtil;
 import com.mamaliang.mmpki.util.PemUtil;
+import com.mamaliang.mmpki.util.X500NameUtil;
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
 /**
  * @author gaof
@@ -27,6 +45,12 @@ import java.util.Base64;
  */
 @SpringBootTest
 public class EnvelopTest {
+
+    @Autowired
+    SM2CSRServiceImpl sm2CSRService;
+
+    @Autowired
+    SM2CertServiceImpl sm2CertService;
 
     @Test
     void testConvertAnXinCa0010() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
@@ -81,5 +105,56 @@ public class EnvelopTest {
         Assertions.assertEquals(exceptB640016, b640016);
     }
 
+    @Test
+    void testEnvelop() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidCipherTextException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+        String caCommonName = "SM2ROOTCA";
+        String commonName = "www.test.com";
+
+        // 签发证书请求
+        CSRVO csrvo = new CSRVO();
+        X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", commonName);
+        csrvo.setSubjectDn(siteDn);
+        List<String> sans = Collections.singletonList(commonName);
+        csrvo.setSubjectAltNames(sans);
+        String[] csrMaterials = sm2CSRService.generateCSR(csrvo);
+        // 自签发ca证书
+        Date notBefore = new Date();
+        Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
+        SelfIssueCertVO svo = new SelfIssueCertVO();
+        X500Name caDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", caCommonName);
+        svo.setSubjectDn(caDn);
+        svo.setCa(false);
+        svo.setNotBefore(notBefore);
+        svo.setNotAfter(notAfter);
+        svo.setSubjectAltNames(Collections.singletonList(caCommonName));
+        String[] caMaterials = sm2CertService.selfIssueSingleCert(svo);
+        // ca签发双证书(信封)
+        CaIssueCertVO cvo = new CaIssueCertVO();
+        cvo.setCa(false);
+        cvo.setNotBefore(notBefore);
+        cvo.setNotAfter(notAfter);
+        cvo.setCsr(csrMaterials[0]);
+        cvo.setCaCert(caMaterials[0]);
+        cvo.setCaPrivateKey(caMaterials[1]);
+        String[] materials = sm2CertService.caIssueDoubleCertWithEnvelop(cvo);
+        // 从信封解出来的私钥和证书中的公钥的是否为一对
+        BCECPublicKey encPublic = (BCECPublicKey) CertUtil.extraPublicKey(PemUtil.pem2Cert(materials[1]));
+        BCECPrivateKey encPrivate = EnvelopedUtil.disassembleFront(materials[2], (BCECPrivateKey) PemUtil.pem2privateKey(csrMaterials[1]));
+        String plainText = "hello world";
+        byte[] encrypt = SM2.encrypt(encPublic, plainText.getBytes(StandardCharsets.UTF_8));
+        byte[] decrypt = SM2.decrypt(encPrivate, encrypt);
+        String text = new String(decrypt, StandardCharsets.UTF_8);
+        Assertions.assertEquals(plainText, text);
+    }
+
+    @Test
+    void test() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, InvalidCipherTextException {
+        KeyPair keyPair = SM2.generateKeyPair();
+        String plainText = "hello world";
+        byte[] encrypt = SM2.encrypt((BCECPublicKey) keyPair.getPublic(), plainText.getBytes(StandardCharsets.UTF_8));
+        byte[] decrypt = SM2.decrypt((BCECPrivateKey) keyPair.getPrivate(), encrypt);
+        String text = new String(decrypt, StandardCharsets.UTF_8);
+        Assertions.assertEquals(plainText, text);
+    }
 
 }
