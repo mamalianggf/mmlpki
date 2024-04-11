@@ -12,6 +12,9 @@ import org.bouncycastle.crypto.params.ParametersWithRandom;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECParameterSpec;
+import org.bouncycastle.jce.spec.ECPublicKeySpec;
+import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
 
 import java.math.BigInteger;
@@ -53,9 +56,11 @@ public class SM2 {
     public static BCECPublicKey convert2PublicKey(byte[] x, byte[] y) {
         X9ECParameters sm2ECParameters = GMNamedCurves.getByName(CURVE_NAME);
         ECDomainParameters ecDomainParameters = new ECDomainParameters(sm2ECParameters.getCurve(), sm2ECParameters.getG(), sm2ECParameters.getN());
-        ECPoint point = sm2ECParameters.getCurve().createPoint(new BigInteger(x), new BigInteger(y));
-        ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(point, ecDomainParameters);
-        return new BCECPublicKey(ALGORITHM, ecPublicKeyParameters, BouncyCastleProvider.CONFIGURATION);
+        ECCurve ecurve = ecDomainParameters.getCurve();
+        ECPoint q = ecurve.createPoint(new BigInteger(x), new BigInteger(y));
+        ECParameterSpec ecps = new ECParameterSpec(ecurve, ecDomainParameters.getG(), ecDomainParameters.getN());
+        ECPublicKeySpec keySpec = new ECPublicKeySpec(q, ecps);
+        return new BCECPublicKey("BC", keySpec, BouncyCastleProvider.CONFIGURATION);
     }
 
     public static byte[] encrypt(BCECPublicKey publicKey, byte[] plainText) throws InvalidCipherTextException {
