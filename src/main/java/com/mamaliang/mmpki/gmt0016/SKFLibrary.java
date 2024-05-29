@@ -64,9 +64,15 @@ public interface SKFLibrary extends Library {
     //    int SKF_Digest(Pointer hHash, byte[] pbData, int ulDataLen, Struct_SM3BLOB pbHashData, int pulHashLen);
     //
     int SKF_ECCSignData(Pointer hContainer, byte[] pbData, int ulDataLen, Struct_ECCSIGNATUREBLOB pSignature);
+
     //
     //    int SKF_ECCVerify(Pointer hDev, Struct_ECCPUBLICKEYBLOB pECCPubKeyBlob, Struct_SM3BLOB pbData, int ulDataLen, Struct_ECCSIGNATUREBLOB pSignature);
     //
+    int SKF_ECCExportSessionKey(Pointer hContainer, int ulAlgId, Struct_ECCPUBLICKEYBLOB pPubKey, Struct_ECCCIPHERBLOB pData, PointerByReference phSessionKey);
+
+    int SKF_EncryptInit(Pointer hKey, Struct_BLOCKCIPHERPARAM EncryptParam);
+
+    int SKF_Encrypt(Pointer hKey, byte[] pbData, int ulDataLen, byte[] pbEncryptedData, IntByReference pulEncryptedLen);
     //    int SKF_CloseHandle(Pointer hkey);
 
 }

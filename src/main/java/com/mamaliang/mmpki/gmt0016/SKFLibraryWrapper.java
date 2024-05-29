@@ -6,6 +6,7 @@ import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -192,6 +193,11 @@ public class SKFLibraryWrapper {
         checkError(uKey.SKF_ECCSignData(hContainer, plain, plain.length, byReference));
         log.info("签名成功");
         return byReference;
+    }
+
+    public void eccExportSessionKey(Pointer hContainer, Struct_ECCPUBLICKEYBLOB pPubKey, Struct_ECCCIPHERBLOB pData, PointerByReference phSessionKey) {
+        checkError(uKey.SKF_ECCExportSessionKey(hContainer, AlgorithmID.SGD_SM4_CBC, pPubKey, pData, phSessionKey));
+        log.info("导出会话密钥成功");
     }
 
     private static void checkError(int ret) {

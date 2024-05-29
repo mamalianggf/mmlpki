@@ -1,13 +1,13 @@
 package com.mamaliang.mmpki.nsagTool;
 
+import com.mamaliang.mmpki.algorithm.AlgorithmID;
 import com.mamaliang.mmpki.algorithm.SM2;
-import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
-import com.mamaliang.mmpki.gmt0016.SKFLibraryWrapper;
-import com.mamaliang.mmpki.gmt0016.SKF_ENVELOPEDKEYBLOB;
-import com.mamaliang.mmpki.gmt0016.Struct_ECCPUBLICKEYBLOB;
+import com.mamaliang.mmpki.algorithm.SM4;
+import com.mamaliang.mmpki.gmt0016.*;
 import com.mamaliang.mmpki.util.CertUtil;
 import com.mamaliang.mmpki.util.X500NameUtil;
 import com.sun.jna.Pointer;
+import com.sun.jna.ptr.PointerByReference;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
@@ -15,6 +15,9 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import javax.crypto.SecretKey;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.security.KeyPair;
 import java.util.Collections;
 import java.util.Date;
@@ -192,6 +195,80 @@ public class GM3000Test {
                 }
             }
         }
+    }
+
+    /**
+     * 要用硬件生成会话密钥,并用skf函数对称加密,所以没有用EnvelopedUtil中的方法
+     */
+//    private SKF_ENVELOPEDKEYBLOB assembleByHardWare(SKFLibraryWrapper skf, Pointer phContainer, BCECPrivateKey encPrivateKey, BCECPublicKey encPublicKey, BCECPublicKey signPublicKey) throws Exception {
+//        // 加密私钥中提取 d
+//        BigInteger d = encPrivateKey.getD();
+//        byte[] dBytes = d.toByteArray();
+//        if (dBytes[0] == 0x00) {// d一定是正数
+//            dBytes = deleteTheFirstByte(dBytes);
+//        }
+//        // 从硬件中获取会话密钥,会话密钥要用指定的公钥进行加密,所以需要提供公钥
+//        byte[] x = encPublicKey.getQ().getAffineXCoord().getEncoded();
+//        x = completeByteArray(x, 64);
+//        byte[] y = encPublicKey.getQ().getAffineYCoord().getEncoded();
+//        y = completeByteArray(y, 64);
+//        Struct_ECCPUBLICKEYBLOB encPublicKeyBlob = new Struct_ECCPUBLICKEYBLOB(256, x, y);
+//        Struct_ECCCIPHERBLOB ecccipherblob = new Struct_ECCCIPHERBLOB();
+//        PointerByReference phSessionKey = new PointerByReference();
+//        skf.eccExportSessionKey(phContainer, encPublicKeyBlob, ecccipherblob,phSessionKey);
+//        // 对称密钥 加密 d
+////        byte[] cbEncryptedPrivKey = SM4.ecbEncrypt(symmKey, dBytes);
+//        skf.
+//
+//        // 不足64bit,补全至64bit
+//        cbEncryptedPrivKey = completeByteArray(cbEncryptedPrivKey, 64);
+//        // 签名公钥加密加密私钥
+//        byte[] symmKeyBytes = symmKey.getEncoded();
+//        byte[] encryptedSymmKeyBytes = SM2.encrypt(signPublicKey, symmKeyBytes);
+//
+//        byte[] x = encPublicKey.getQ().getAffineXCoord().getEncoded();
+//        x = completeByteArray(x, 64);
+//        byte[] y = encPublicKey.getQ().getAffineYCoord().getEncoded();
+//        y = completeByteArray(y, 64);
+//        Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = new Struct_ECCPUBLICKEYBLOB(256, x, y);
+//
+//        if (encryptedSymmKeyBytes[0] == 0x04) {
+//            encryptedSymmKeyBytes = deleteTheFirstByte(encryptedSymmKeyBytes);
+//        }
+//        ByteBuffer bb = ByteBuffer.wrap(encryptedSymmKeyBytes);
+//        byte[] c1x = new byte[32];
+//        byte[] c1y = new byte[32];
+//        byte[] c3 = new byte[32];
+//        bb.get(c1x);
+//        bb.get(c1y);
+//        bb.get(c3);
+//        byte[] c2 = new byte[bb.remaining()];
+//        bb.get(c2);
+//        c1x = completeByteArray(c1x, 64);
+//        c1y = completeByteArray(c1y, 64);
+//        Struct_ECCCIPHERBLOB eccCipherBlob = new Struct_ECCCIPHERBLOB(c1x, c1y, c3, c2.length, c2);
+//
+//        return new SKF_ENVELOPEDKEYBLOB(SKF_ENVELOPEDKEYBLOB.VERSION, AlgorithmID.SGD_SM4_ECB, 256, cbEncryptedPrivKey, eccPublicKeyBlob, eccCipherBlob);
+//    }
+
+    private static byte[] deleteTheFirstByte(byte[] bytes) {
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        bb.position(1);
+        byte[] temp = new byte[bb.remaining()];
+        bb.get(temp);
+        return temp;
+    }
+
+    /**
+     * 补全位数至goal,补前面
+     */
+    private static byte[] completeByteArray(byte[] bytes, int goal) {
+        if (bytes.length < goal) {
+            byte[] temp = new byte[goal];
+            System.arraycopy(bytes, 0, temp, temp.length - bytes.length, bytes.length);
+            return temp;
+        }
+        return bytes;
     }
 
 }
