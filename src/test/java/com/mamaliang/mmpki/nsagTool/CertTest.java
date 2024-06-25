@@ -145,13 +145,14 @@ public class CertTest {
      */
     @Test
     void sm2CaIssueDoubleCertificateEnvelop() throws IOException {
+        String path = storePath + "密钥不落地/";
         String p10 = "-----BEGIN CERTIFICATE REQUEST-----\n" +
-                "MIIBDDCBsAIBADAkMQswCQYDVQQGEwJDTjEVMBMGA1UEAwwMd3d3LnRlc3QuY29t\n" +
-                "MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEvNY/+lSLEmdk942O+38lharwiPYH\n" +
-                "0JcGH/T/bl6e5gFaVl+CcSj3zjVsKYUrOT/LiChhRysg3By/RIaLc6TfzaAqMCgG\n" +
-                "CSqGSIb3DQEJDjEbMBkwFwYDVR0RBBAwDoIMd3d3LnRlc3QuY29tMAwGCCqBHM9V\n" +
-                "AYN1BQADSQAwRgIhAJk7VF7QENEMnuI7ELJo+TmQAY9eRNEOMg06GnQJn3YtAiEA\n" +
-                "pHaH/lxpfPr81xrJ1I8DXFDflO2FciD38/NkNc9tg5s=\n" +
+                "MIIBAzCBpwIBADAjMQswCQYDVQQGEwJDTjEUMBIGA1UEAwwLMTAuMC4yNDcuNzYw\n" +
+                "WTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAATLwTOS88RE6V8wctETm54dRGw7XJM9\n" +
+                "P0+qns5PHScp6dcs8w/C2pnR7pLkzHrKpcsEwbPucRKFcTWxF/mvUG3YoCIwIAYJ\n" +
+                "KoZIhvcNAQkOMRMwETAPBgNVHREECDAGhwQKAPdMMAwGCCqBHM9VAYN1BQADSQAw\n" +
+                "RgIhAKQqKOTbrn681CQyS7tCIClXjMSb5AI/ogcVSCnjtwxzAiEA7nBToM8PaV9X\n" +
+                "wxBlZrCvXDVRRYrf3gH0+GPMHF8h+Uo=\n" +
                 "-----END CERTIFICATE REQUEST-----";
         String caCommonName = "SM2ROOTCA";
 
@@ -174,9 +175,13 @@ public class CertTest {
         cvo.setCaCert(caMaterials[0]);
         cvo.setCaPrivateKey(caMaterials[1]);
         String[] materials = sm2CertService.caIssueDoubleCertWithEnvelop(cvo);
-        try (FileWriter sig = new FileWriter(storePath + "sm2sig.pem");
-             FileWriter enc = new FileWriter(storePath + "sm2enc.pem");
-             FileWriter envelop = new FileWriter(storePath + "sm2envelop.key")) {
+        try (FileWriter caPem = new FileWriter(path + "ca.pem");
+             FileWriter caKey = new FileWriter(path + "ca.key");
+             FileWriter sig = new FileWriter(path + "sm2sig.pem");
+             FileWriter enc = new FileWriter(path + "sm2enc.pem");
+             FileWriter envelop = new FileWriter(path + "sm2envelop.key")) {
+            caPem.write(caMaterials[0]);
+            caKey.write(caMaterials[1]);
             sig.write(materials[0]);
             enc.write(materials[1]);
             envelop.write(materials[2]);
