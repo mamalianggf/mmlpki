@@ -11,8 +11,9 @@ import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.params.ParametersWithRandom;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
+import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jce.spec.ECParameterSpec;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
 import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
@@ -20,6 +21,7 @@ import org.bouncycastle.math.ec.ECPoint;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
+import java.security.spec.InvalidKeySpecException;
 
 /**
  * {@link GMObjectIdentifiers}
@@ -53,14 +55,13 @@ public class SM2 {
     /**
      * X,Y 32/64位都可以,且都是正数
      */
-    public static BCECPublicKey convert2PublicKey(byte[] x, byte[] y) {
-        X9ECParameters sm2ECParameters = GMNamedCurves.getByName(CURVE_NAME);
-        ECDomainParameters ecDomainParameters = new ECDomainParameters(sm2ECParameters.getCurve(), sm2ECParameters.getG(), sm2ECParameters.getN());
-        ECCurve ecurve = ecDomainParameters.getCurve();
-        ECPoint q = ecurve.createPoint(new BigInteger(x), new BigInteger(y));
-        ECParameterSpec ecps = new ECParameterSpec(ecurve, ecDomainParameters.getG(), ecDomainParameters.getN());
-        ECPublicKeySpec keySpec = new ECPublicKeySpec(q, ecps);
-        return new BCECPublicKey("BC", keySpec, BouncyCastleProvider.CONFIGURATION);
+    public static BCECPublicKey convert2PublicKey(byte[] x, byte[] y) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        ECNamedCurveParameterSpec sm2ECParameters = ECNamedCurveTable.getParameterSpec(CURVE_NAME);
+        ECCurve curve = sm2ECParameters.getCurve();
+        ECPoint point = curve.createPoint(new BigInteger(1, x), new BigInteger(1, y));
+        ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(point, sm2ECParameters);
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", new BouncyCastleProvider());
+        return (BCECPublicKey) keyFactory.generatePublic(pubKeySpec);
     }
 
     public static byte[] encrypt(BCECPublicKey publicKey, byte[] plainText) throws InvalidCipherTextException {

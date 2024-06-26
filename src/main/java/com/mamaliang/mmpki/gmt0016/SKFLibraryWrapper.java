@@ -158,7 +158,7 @@ public class SKFLibraryWrapper {
     }
 
     public void ImportECCKeyPair(Pointer hContainer, SKF_ENVELOPEDKEYBLOB pEnvelopedKeyBlob) {
-        checkError(uKey.SKF_ImportECCKeyPair(hContainer, pEnvelopedKeyBlob));
+        checkError(uKey.SKF_ImportECCKeyPair(hContainer, SKF_ENVELOPEDKEYBLOB.encode(pEnvelopedKeyBlob)));
         log.info("导入ECC加密密钥对完成");
     }
 

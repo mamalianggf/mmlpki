@@ -45,7 +45,7 @@ public interface SKFLibrary extends Library {
 
     int SKF_GenECCKeyPair(Pointer hContainer, int ulAlgId, Struct_ECCPUBLICKEYBLOB pBlob);
 
-    int SKF_ImportECCKeyPair(Pointer hContainer, SKF_ENVELOPEDKEYBLOB pEnvelopedKeyBlob);
+    int SKF_ImportECCKeyPair(Pointer hContainer, byte[] pEnvelopedKeyBlob);
 
     int SKF_ExportPublicKey(Pointer hContainer, int bSignFlag, Struct_ECCPUBLICKEYBLOB pBlob, IntByReference pulBlobLen);
 
