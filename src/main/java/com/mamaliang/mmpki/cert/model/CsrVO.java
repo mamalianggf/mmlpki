@@ -1,4 +1,4 @@
-package com.mamaliang.mmpki.cert.vo;
+package com.mamaliang.mmpki.cert.model;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,7 +12,7 @@ import java.util.List;
  */
 @Getter
 @Setter
-public class CSRVO {
+public class CsrVO {
 
     private X500Name subjectDn;
 

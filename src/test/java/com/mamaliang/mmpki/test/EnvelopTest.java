@@ -1,11 +1,8 @@
 package com.mamaliang.mmpki.test;
 
 import com.mamaliang.mmpki.algorithm.SM2;
-import com.mamaliang.mmpki.cert.service.impl.SM2CSRServiceImpl;
+import com.mamaliang.mmpki.cert.model.*;
 import com.mamaliang.mmpki.cert.service.impl.SM2CertServiceImpl;
-import com.mamaliang.mmpki.cert.vo.CSRVO;
-import com.mamaliang.mmpki.cert.vo.CaIssueCertVO;
-import com.mamaliang.mmpki.cert.vo.SelfIssueCertVO;
 import com.mamaliang.mmpki.gmt0009.SM2EnvelopedKey;
 import com.mamaliang.mmpki.gmt0010.SignedAndEnvelopedData;
 import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
@@ -28,7 +25,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -46,8 +42,6 @@ import java.util.List;
 @SpringBootTest
 public class EnvelopTest {
 
-    @Autowired
-    SM2CSRServiceImpl sm2CSRService;
 
     @Autowired
     SM2CertServiceImpl sm2CertService;
@@ -55,26 +49,27 @@ public class EnvelopTest {
     @Test
     void testConvertAnXinCa0010() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
 
-        String b64EncCert = "-----BEGIN CERTIFICATE-----\n" +
-                "MIIDVzCCAvugAwIBAgIQRhJy7al+XUcIWbQcfGPhVzAMBggqgRzPVQGDdQUAMDcx\n" +
-                "CzAJBgNVBAYTAkNOMREwDwYDVQQKDAhBblhpbiBDQTEVMBMGA1UEAwwMQW5YaW4g\n" +
-                "U00yIENBMB4XDTIzMTIyODAxMzYzMFoXDTI0MDEyNzAxMzYzMFowHTELMAkGA1UE\n" +
-                "BhMCQ04xDjAMBgNVBAMMBXN6d2R0MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAE\n" +
-                "fNYG49HbeFc/JHnb7ucfywO2dhTq9nSEOdXI2Ak53/oZSk/XHFMJusbgfjDT71EB\n" +
-                "85kosupdvFeoYrIsY4/6XqOCAf8wggH7MA4GA1UdDwEB/wQEAwIEMDAdBgNVHSUE\n" +
-                "FjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwHQYDVR0OBBYEFGYlR0K9C+0OXT7NR8Ph\n" +
-                "1BWggTQzMIHwBgNVHR8EgegwgeUwM6AxoC+kLTArMQswCQYDVQQGEwJDTjEMMAoG\n" +
-                "A1UECwwDQ1JMMQ4wDAYDVQQDDAVjcmw3MDAzoDGgL4YtaHR0cDovL2Nvbm5lY3Rv\n" +
-                "ci5hbnhpbmNhLmNvbS9zbTJjcmwvY3JsNzAuY3JsMHmgd6B1hnNsZGFwOi8vc20y\n" +
-                "bGRhcC5hbnhpbmNhLmNvbTozOTAvQ049Y3JsNzAsT1U9Q1JMLEM9Q04/Y2VydGlm\n" +
-                "aWNhdGVSZXZvY2F0aW9uTGlzdD9iYXNlP29iamVjdGNsYXNzPWNSTERpc3RyaWJ1\n" +
-                "dGlvblBvaW50MHcGCCsGAQUFBwEBBGswaTAmBggrBgEFBQcwAYYaaHR0cDovLzIy\n" +
-                "MS44LjE2LjEwNzoyMDQ0NC8wPwYIKwYBBQUHMAKGM2h0dHA6Ly93d3cuYW54aW5j\n" +
-                "YS5jb20vZG93bmxvYWQtZmlsZS9BblhpblNNMkNBLmNlcjAQBgNVHREECTAHggVz\n" +
-                "endkdDAfBgNVHSMEGDAWgBS7f/leOGn4WWcJqnfhxoMEGOkBFTAMBgNVHRMEBTAD\n" +
-                "AQEAMAwGCCqBHM9VAYN1BQADSAAwRQIhANa19GRBWIBdNNzh1VK24cYb/P71pg2X\n" +
-                "keBxldquqVW5AiB+vsZFIwtekh0gw4dkVQ55ykNrZkJsSubTL84yIr5mxA==\n" +
-                "-----END CERTIFICATE-----";
+        String b64EncCert = """
+                -----BEGIN CERTIFICATE-----
+                MIIDVzCCAvugAwIBAgIQRhJy7al+XUcIWbQcfGPhVzAMBggqgRzPVQGDdQUAMDcx
+                CzAJBgNVBAYTAkNOMREwDwYDVQQKDAhBblhpbiBDQTEVMBMGA1UEAwwMQW5YaW4g
+                U00yIENBMB4XDTIzMTIyODAxMzYzMFoXDTI0MDEyNzAxMzYzMFowHTELMAkGA1UE
+                BhMCQ04xDjAMBgNVBAMMBXN6d2R0MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAE
+                fNYG49HbeFc/JHnb7ucfywO2dhTq9nSEOdXI2Ak53/oZSk/XHFMJusbgfjDT71EB
+                85kosupdvFeoYrIsY4/6XqOCAf8wggH7MA4GA1UdDwEB/wQEAwIEMDAdBgNVHSUE
+                FjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwHQYDVR0OBBYEFGYlR0K9C+0OXT7NR8Ph
+                1BWggTQzMIHwBgNVHR8EgegwgeUwM6AxoC+kLTArMQswCQYDVQQGEwJDTjEMMAoG
+                A1UECwwDQ1JMMQ4wDAYDVQQDDAVjcmw3MDAzoDGgL4YtaHR0cDovL2Nvbm5lY3Rv
+                ci5hbnhpbmNhLmNvbS9zbTJjcmwvY3JsNzAuY3JsMHmgd6B1hnNsZGFwOi8vc20y
+                bGRhcC5hbnhpbmNhLmNvbTozOTAvQ049Y3JsNzAsT1U9Q1JMLEM9Q04/Y2VydGlm
+                aWNhdGVSZXZvY2F0aW9uTGlzdD9iYXNlP29iamVjdGNsYXNzPWNSTERpc3RyaWJ1
+                dGlvblBvaW50MHcGCCsGAQUFBwEBBGswaTAmBggrBgEFBQcwAYYaaHR0cDovLzIy
+                MS44LjE2LjEwNzoyMDQ0NC8wPwYIKwYBBQUHMAKGM2h0dHA6Ly93d3cuYW54aW5j
+                YS5jb20vZG93bmxvYWQtZmlsZS9BblhpblNNMkNBLmNlcjAQBgNVHREECTAHggVz
+                endkdDAfBgNVHSMEGDAWgBS7f/leOGn4WWcJqnfhxoMEGOkBFTAMBgNVHRMEBTAD
+                AQEAMAwGCCqBHM9VAYN1BQADSAAwRQIhANa19GRBWIBdNNzh1VK24cYb/P71pg2X
+                keBxldquqVW5AiB+vsZFIwtekh0gw4dkVQ55ykNrZkJsSubTL84yIr5mxA==
+                -----END CERTIFICATE-----""";
         Certificate encCert = PemUtil.pem2Cert(b64EncCert);
         SubjectPublicKeyInfo subjectPublicKeyInfo = encCert.getSubjectPublicKeyInfo();
         String algo = subjectPublicKeyInfo.getAlgorithm().getAlgorithm().getId();
@@ -111,12 +106,12 @@ public class EnvelopTest {
         String commonName = "www.test.com";
 
         // 签发证书请求
-        CSRVO csrvo = new CSRVO();
+        CsrVO csrvo = new CsrVO();
         X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", commonName);
         csrvo.setSubjectDn(siteDn);
         List<String> sans = Collections.singletonList(commonName);
         csrvo.setSubjectAltNames(sans);
-        String[] csrMaterials = sm2CSRService.generateCSR(csrvo);
+        CsrWithPrivateKey csrWithPrivateKey = sm2CertService.generateCsr(csrvo);
         // 自签发ca证书
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
@@ -127,19 +122,19 @@ public class EnvelopTest {
         svo.setNotBefore(notBefore);
         svo.setNotAfter(notAfter);
         svo.setSubjectAltNames(Collections.singletonList(caCommonName));
-        String[] caMaterials = sm2CertService.selfIssueSingleCert(svo);
+        CertWithPrivateKey caCertWithPrivateKey = sm2CertService.selfIssueSingleCert(svo);
         // ca签发双证书(信封)
         CaIssueCertVO cvo = new CaIssueCertVO();
         cvo.setCa(false);
         cvo.setNotBefore(notBefore);
         cvo.setNotAfter(notAfter);
-        cvo.setCsr(csrMaterials[0]);
-        cvo.setCaCert(caMaterials[0]);
-        cvo.setCaPrivateKey(caMaterials[1]);
-        String[] materials = sm2CertService.caIssueDoubleCertWithEnvelop(cvo);
+        cvo.setCsr(csrWithPrivateKey.csr());
+        cvo.setCaCert(caCertWithPrivateKey.cert());
+        cvo.setCaPrivateKey(caCertWithPrivateKey.privateKey());
+        DoubleCertWithEnvelop doubleCertWithEnvelop = sm2CertService.caIssueDoubleCertWithEnvelop(cvo);
         // 从信封解出来的私钥和证书中的公钥的是否为一对
-        BCECPublicKey encPublic = (BCECPublicKey) CertUtil.extraPublicKey(PemUtil.pem2Cert(materials[1]));
-        BCECPrivateKey encPrivate = EnvelopedUtil.disassembleFront(materials[2], (BCECPrivateKey) PemUtil.pem2privateKey(csrMaterials[1]));
+        BCECPublicKey encPublic = (BCECPublicKey) CertUtil.extraPublicKey(PemUtil.pem2Cert(doubleCertWithEnvelop.encCert()));
+        BCECPrivateKey encPrivate = EnvelopedUtil.disassembleFront(doubleCertWithEnvelop.envelop(), (BCECPrivateKey) PemUtil.pem2privateKey(csrWithPrivateKey.privateKey()));
         String plainText = "hello world";
         byte[] encrypt = SM2.encrypt(encPublic, plainText.getBytes(StandardCharsets.UTF_8));
         byte[] decrypt = SM2.decrypt(encPrivate, encrypt);

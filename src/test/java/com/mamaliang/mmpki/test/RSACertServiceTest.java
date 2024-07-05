@@ -1,10 +1,7 @@
 package com.mamaliang.mmpki.test;
 
-import com.mamaliang.mmpki.cert.service.CSRService;
-import com.mamaliang.mmpki.cert.service.CertService;
-import com.mamaliang.mmpki.cert.vo.CSRVO;
-import com.mamaliang.mmpki.cert.vo.CaIssueCertVO;
-import com.mamaliang.mmpki.cert.vo.SelfIssueCertVO;
+import com.mamaliang.mmpki.cert.model.*;
+import com.mamaliang.mmpki.cert.service.impl.RSACertServiceImpl;
 import com.mamaliang.mmpki.util.PemUtil;
 import com.mamaliang.mmpki.util.X500NameUtil;
 import org.bouncycastle.asn1.x500.RDN;
@@ -14,10 +11,8 @@ import org.bouncycastle.asn1.x509.Certificate;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
@@ -27,13 +22,8 @@ import java.util.List;
 @SpringBootTest
 class RSACertServiceTest {
 
-    @Qualifier("RSACertService")
     @Autowired
-    private CertService certService;
-
-    @Qualifier("RSACSRService")
-    @Autowired
-    private CSRService csrService;
+    private RSACertServiceImpl rsaCertService;
 
     @Test
     void testSelfIssueSiteCertificate() throws IOException {
@@ -46,8 +36,8 @@ class RSACertServiceTest {
         vo.setNotBefore(notBefore);
         vo.setNotAfter(notAfter);
         vo.setSubjectAltNames(Collections.singletonList("www.site.com"));
-        String[] materials = certService.selfIssueSingleCert(vo);
-        Certificate certificate = PemUtil.pem2Cert(materials[0]);
+        CertWithPrivateKey certWithPrivateKey = rsaCertService.selfIssueSingleCert(vo);
+        Certificate certificate = PemUtil.pem2Cert(certWithPrivateKey.cert());
         RDN[] rdNs = certificate.getSubject().getRDNs(BCStyle.CN);
         Assertions.assertEquals("www.site.com", rdNs[0].getTypesAndValues()[0].getValue().toString());
     }
@@ -65,25 +55,25 @@ class RSACertServiceTest {
         X500Name caDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "RSAROOTCA");
         svo.setSubjectDn(caDn);
         svo.setSubjectAltNames(Collections.singletonList("RSAROOTCA"));
-        String[] caMaterials = certService.selfIssueSingleCert(svo);
+        CertWithPrivateKey caCertWithPrivateKey = rsaCertService.selfIssueSingleCert(svo);
 
-        CSRVO csrvo = new CSRVO();
+        CsrVO csrvo = new CsrVO();
         X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
         csrvo.setSubjectDn(siteDn);
         List<String> sans = Collections.singletonList("www.site.com");
         csrvo.setSubjectAltNames(sans);
-        String[] csrMaterials = csrService.generateCSR(csrvo);
+        CsrWithPrivateKey csrWithPrivateKey = rsaCertService.generateCsr(csrvo);
 
         CaIssueCertVO cvo = new CaIssueCertVO();
         cvo.setCa(false);
         cvo.setNotBefore(notBefore);
         cvo.setNotAfter(notAfter);
-        cvo.setCsr(csrMaterials[0]);
-        cvo.setCaCert(caMaterials[0]);
-        cvo.setCaPrivateKey(caMaterials[1]);
-        String materials = certService.caIssueSingleCert(cvo);
+        cvo.setCsr(csrWithPrivateKey.csr());
+        cvo.setCaCert(caCertWithPrivateKey.cert());
+        cvo.setCaPrivateKey(caCertWithPrivateKey.privateKey());
+        String cert = rsaCertService.caIssueSingleCert(cvo);
 
-        Certificate certificate = PemUtil.pem2Cert(materials);
+        Certificate certificate = PemUtil.pem2Cert(cert);
         RDN[] rdNs = certificate.getSubject().getRDNs(BCStyle.CN);
         Assertions.assertEquals("www.site.com", rdNs[0].getTypesAndValues()[0].getValue().toString());
     }

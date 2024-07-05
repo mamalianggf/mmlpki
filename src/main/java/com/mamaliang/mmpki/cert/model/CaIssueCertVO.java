@@ -1,4 +1,4 @@
-package com.mamaliang.mmpki.cert.vo;
+package com.mamaliang.mmpki.cert.model;
 
 import lombok.Getter;
 import lombok.Setter;
