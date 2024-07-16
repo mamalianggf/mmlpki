@@ -146,7 +146,7 @@ public class CertUtil {
                 sans[i] = new GeneralName(GeneralName.dNSName, subjectAltNames.get(i));
             }
         }
-        return Extension.create(Extension.subjectAlternativeName, true, new GeneralNames(sans));
+        return Extension.create(Extension.subjectAlternativeName, false, new GeneralNames(sans));
     }
 
     private static Extension generateExtKeyUsageExt() throws IOException {
@@ -157,12 +157,12 @@ public class CertUtil {
     private static Extension generateAuthorityKeyIdentifierExt(PublicKey issuerPublicKey) throws IOException, NoSuchAlgorithmException {
         JcaX509ExtensionUtils jcaX509ExtensionUtils = new JcaX509ExtensionUtils();
         AuthorityKeyIdentifier authorityKeyIdentifier = jcaX509ExtensionUtils.createAuthorityKeyIdentifier(issuerPublicKey);
-        return Extension.create(Extension.authorityKeyIdentifier, true, authorityKeyIdentifier);
+        return Extension.create(Extension.authorityKeyIdentifier, false, authorityKeyIdentifier);
     }
 
     private static Extension generateSubjectKeyIdentifierExt(PublicKey subjectPublicKey) throws IOException, NoSuchAlgorithmException {
         JcaX509ExtensionUtils jcaX509ExtensionUtils = new JcaX509ExtensionUtils();
         SubjectKeyIdentifier subjectKeyIdentifier = jcaX509ExtensionUtils.createSubjectKeyIdentifier(subjectPublicKey);
-        return Extension.create(Extension.subjectKeyIdentifier, true, subjectKeyIdentifier);
+        return Extension.create(Extension.subjectKeyIdentifier, false, subjectKeyIdentifier);
     }
 }
