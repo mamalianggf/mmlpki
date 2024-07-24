@@ -19,8 +19,6 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -39,12 +37,7 @@ import java.util.List;
  * @author gaof
  * @date 2023/11/21
  */
-@SpringBootTest
 public class EnvelopTest {
-
-
-    @Autowired
-    SM2CertServiceImpl sm2CertService;
 
     @Test
     void testConvertAnXinCa0010() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
@@ -111,7 +104,7 @@ public class EnvelopTest {
         csrvo.setSubjectDn(siteDn);
         List<String> sans = Collections.singletonList(commonName);
         csrvo.setSubjectAltNames(sans);
-        CsrWithPrivateKey csrWithPrivateKey = sm2CertService.generateCsr(csrvo);
+        CsrWithPrivateKey csrWithPrivateKey = new SM2CertServiceImpl().generateCsr(csrvo);
         // 自签发ca证书
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
@@ -122,7 +115,7 @@ public class EnvelopTest {
         svo.setNotBefore(notBefore);
         svo.setNotAfter(notAfter);
         svo.setSubjectAltNames(Collections.singletonList(caCommonName));
-        CertWithPrivateKey caCertWithPrivateKey = sm2CertService.selfIssueSingleCert(svo);
+        CertWithPrivateKey caCertWithPrivateKey =  new SM2CertServiceImpl().selfIssueSingleCert(svo);
         // ca签发双证书(信封)
         CaIssueCertVO cvo = new CaIssueCertVO();
         cvo.setCa(false);
@@ -131,7 +124,7 @@ public class EnvelopTest {
         cvo.setCsr(csrWithPrivateKey.csr());
         cvo.setCaCert(caCertWithPrivateKey.cert());
         cvo.setCaPrivateKey(caCertWithPrivateKey.privateKey());
-        DoubleCertWithEnvelop doubleCertWithEnvelop = sm2CertService.caIssueDoubleCertWithEnvelop(cvo);
+        DoubleCertWithEnvelop doubleCertWithEnvelop =  new SM2CertServiceImpl().caIssueDoubleCertWithEnvelop(cvo);
         // 从信封解出来的私钥和证书中的公钥的是否为一对
         BCECPublicKey encPublic = (BCECPublicKey) CertUtil.extraPublicKey(PemUtil.pem2Cert(doubleCertWithEnvelop.encCert()));
         BCECPrivateKey encPrivate = EnvelopedUtil.disassembleFront(doubleCertWithEnvelop.envelop(), (BCECPrivateKey) PemUtil.pem2privateKey(csrWithPrivateKey.privateKey()));

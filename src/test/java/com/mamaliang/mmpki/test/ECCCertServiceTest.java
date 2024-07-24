@@ -10,8 +10,6 @@ import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -19,11 +17,9 @@ import java.util.Date;
 import java.util.List;
 
 
-@SpringBootTest
 class ECCCertServiceTest {
 
-    @Autowired
-    private ECCCertServiceImpl eccCertService;
+
 
     @Test
     void testSelfIssueSiteCertificate() throws IOException {
@@ -36,7 +32,7 @@ class ECCCertServiceTest {
         vo.setNotBefore(notBefore);
         vo.setNotAfter(notAfter);
         vo.setSubjectAltNames(Collections.singletonList("www.site.com"));
-        CertWithPrivateKey certWithPrivateKey = eccCertService.selfIssueSingleCert(vo);
+        CertWithPrivateKey certWithPrivateKey = new ECCCertServiceImpl().selfIssueSingleCert(vo);
         Certificate certificate = PemUtil.pem2Cert(certWithPrivateKey.cert());
         RDN[] rdNs = certificate.getSubject().getRDNs(BCStyle.CN);
         Assertions.assertEquals("www.site.com", rdNs[0].getTypesAndValues()[0].getValue().toString());
@@ -55,7 +51,7 @@ class ECCCertServiceTest {
         X500Name caDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "ECCROOTCA");
         svo.setSubjectDn(caDn);
         svo.setSubjectAltNames(Collections.singletonList("ECCROOTCA"));
-        CertWithPrivateKey caCertWithPrivateKey = eccCertService.selfIssueSingleCert(svo);
+        CertWithPrivateKey caCertWithPrivateKey = new ECCCertServiceImpl().selfIssueSingleCert(svo);
 
 
         CsrVO csrvo = new CsrVO();
@@ -63,7 +59,7 @@ class ECCCertServiceTest {
         csrvo.setSubjectDn(siteDn);
         List<String> sans = Collections.singletonList("www.site.com");
         csrvo.setSubjectAltNames(sans);
-        CsrWithPrivateKey csrWithPrivateKey = eccCertService.generateCsr(csrvo);
+        CsrWithPrivateKey csrWithPrivateKey = new ECCCertServiceImpl().generateCsr(csrvo);
 
 
         CaIssueCertVO cvo = new CaIssueCertVO();
@@ -73,7 +69,7 @@ class ECCCertServiceTest {
         cvo.setCsr(csrWithPrivateKey.csr());
         cvo.setCaCert(caCertWithPrivateKey.cert());
         cvo.setCaPrivateKey(caCertWithPrivateKey.privateKey());
-        String cert = eccCertService.caIssueSingleCert(cvo);
+        String cert = new ECCCertServiceImpl().caIssueSingleCert(cvo);
 
         Certificate certificate = PemUtil.pem2Cert(cert);
         RDN[] rdNs = certificate.getSubject().getRDNs(BCStyle.CN);

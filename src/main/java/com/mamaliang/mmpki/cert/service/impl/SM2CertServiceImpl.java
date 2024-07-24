@@ -12,7 +12,6 @@ import java.security.NoSuchAlgorithmException;
  * @author gaof
  * @date 2023/11/17
  */
-@Service("SM2CertService")
 public class SM2CertServiceImpl extends AbstractCertService {
     @Override
     public KeyPair generateKeyPair() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException {

@@ -10,8 +10,6 @@ import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -19,11 +17,7 @@ import java.util.Date;
 import java.util.List;
 
 
-@SpringBootTest
 class RSACertServiceTest {
-
-    @Autowired
-    private RSACertServiceImpl rsaCertService;
 
     @Test
     void testSelfIssueSiteCertificate() throws IOException {
@@ -36,7 +30,7 @@ class RSACertServiceTest {
         vo.setNotBefore(notBefore);
         vo.setNotAfter(notAfter);
         vo.setSubjectAltNames(Collections.singletonList("www.site.com"));
-        CertWithPrivateKey certWithPrivateKey = rsaCertService.selfIssueSingleCert(vo);
+        CertWithPrivateKey certWithPrivateKey = new RSACertServiceImpl().selfIssueSingleCert(vo);
         Certificate certificate = PemUtil.pem2Cert(certWithPrivateKey.cert());
         RDN[] rdNs = certificate.getSubject().getRDNs(BCStyle.CN);
         Assertions.assertEquals("www.site.com", rdNs[0].getTypesAndValues()[0].getValue().toString());
@@ -55,14 +49,14 @@ class RSACertServiceTest {
         X500Name caDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "RSAROOTCA");
         svo.setSubjectDn(caDn);
         svo.setSubjectAltNames(Collections.singletonList("RSAROOTCA"));
-        CertWithPrivateKey caCertWithPrivateKey = rsaCertService.selfIssueSingleCert(svo);
+        CertWithPrivateKey caCertWithPrivateKey = new RSACertServiceImpl().selfIssueSingleCert(svo);
 
         CsrVO csrvo = new CsrVO();
         X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
         csrvo.setSubjectDn(siteDn);
         List<String> sans = Collections.singletonList("www.site.com");
         csrvo.setSubjectAltNames(sans);
-        CsrWithPrivateKey csrWithPrivateKey = rsaCertService.generateCsr(csrvo);
+        CsrWithPrivateKey csrWithPrivateKey = new RSACertServiceImpl().generateCsr(csrvo);
 
         CaIssueCertVO cvo = new CaIssueCertVO();
         cvo.setCa(false);
@@ -71,7 +65,7 @@ class RSACertServiceTest {
         cvo.setCsr(csrWithPrivateKey.csr());
         cvo.setCaCert(caCertWithPrivateKey.cert());
         cvo.setCaPrivateKey(caCertWithPrivateKey.privateKey());
-        String cert = rsaCertService.caIssueSingleCert(cvo);
+        String cert = new RSACertServiceImpl().caIssueSingleCert(cvo);
 
         Certificate certificate = PemUtil.pem2Cert(cert);
         RDN[] rdNs = certificate.getSubject().getRDNs(BCStyle.CN);
