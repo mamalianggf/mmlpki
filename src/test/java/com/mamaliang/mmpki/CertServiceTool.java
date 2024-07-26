@@ -1,27 +1,24 @@
-package com.mamaliang.mmpki.test;
+package com.mamaliang.mmpki;
 
 import com.mamaliang.mmpki.cert.model.*;
-import com.mamaliang.mmpki.util.PemUtil;
+import com.mamaliang.mmpki.cert.service.AbstractCertService;
+import com.mamaliang.mmpki.model.CaWithOneSite;
+import com.mamaliang.mmpki.model.CaWithTwoSite;
+import com.mamaliang.mmpki.model.CaWithTwoSiteEnvelop;
 import com.mamaliang.mmpki.util.X500NameUtil;
-import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.Certificate;
-import org.junit.jupiter.api.Assertions;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * @author gaof
  * @date 2024/7/24
  */
-public class CertServiceTestTool {
+public class CertServiceTool {
 
-    public static void testSelfIssueSiteCertificate(Function<SelfIssueCertVO, CertWithPrivateKey> issue) throws IOException {
+    public static CertWithPrivateKey selfIssueSiteCertificate(AbstractCertService abstractCertService) {
         SelfIssueCertVO vo = new SelfIssueCertVO();
         X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
         vo.setSubjectDn(siteDn);
@@ -31,13 +28,10 @@ public class CertServiceTestTool {
         vo.setNotBefore(notBefore);
         vo.setNotAfter(notAfter);
         vo.setSubjectAltNames(Collections.singletonList("www.site.com"));
-        CertWithPrivateKey certWithPrivateKey = issue.apply(vo);
-        Certificate certificate = PemUtil.pem2Cert(certWithPrivateKey.cert());
-        RDN[] rdNs = certificate.getSubject().getRDNs(BCStyle.CN);
-        Assertions.assertEquals("www.site.com", rdNs[0].getTypesAndValues()[0].getValue().toString());
+        return abstractCertService.selfIssueSingleCert(vo);
     }
 
-    public static void testCaIssueSiteCertificate(Function<SelfIssueCertVO, CertWithPrivateKey> issueCa, Function<CsrVO, CsrWithPrivateKey> issueCsr, Function<CaIssueCertVO, String> caIssue) throws IOException {
+    public static CaWithOneSite caIssueSiteCertificate(AbstractCertService abstractCertService) {
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
         SelfIssueCertVO svo = new SelfIssueCertVO();
@@ -47,13 +41,13 @@ public class CertServiceTestTool {
         X500Name caDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "ROOT_CA");
         svo.setSubjectDn(caDn);
         svo.setSubjectAltNames(Collections.singletonList("ROOT_CA"));
-        CertWithPrivateKey caCertWithPrivateKey = issueCa.apply(svo);
+        CertWithPrivateKey caCertWithPrivateKey = abstractCertService.selfIssueSingleCert(svo);
         CsrVO csrvo = new CsrVO();
         X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
         csrvo.setSubjectDn(siteDn);
         List<String> sans = Collections.singletonList("www.site.com");
         csrvo.setSubjectAltNames(sans);
-        CsrWithPrivateKey csrWithPrivateKey = issueCsr.apply(csrvo);
+        CsrWithPrivateKey csrWithPrivateKey = abstractCertService.generateCsr(csrvo);
 
         CaIssueCertVO cvo = new CaIssueCertVO();
         cvo.setCa(false);
@@ -62,14 +56,15 @@ public class CertServiceTestTool {
         cvo.setCsr(csrWithPrivateKey.csr());
         cvo.setCaCert(caCertWithPrivateKey.cert());
         cvo.setCaPrivateKey(caCertWithPrivateKey.privateKey());
-        String cert = caIssue.apply(cvo);
+        String cert = abstractCertService.caIssueSingleCert(cvo);
 
-        Certificate certificate = PemUtil.pem2Cert(cert);
-        RDN[] rdNs = certificate.getSubject().getRDNs(BCStyle.CN);
-        Assertions.assertEquals("www.site.com", rdNs[0].getTypesAndValues()[0].getValue().toString());
+        CertWithPrivateKey site = new CertWithPrivateKey(cert, csrWithPrivateKey.privateKey());
+        return new CaWithOneSite(caCertWithPrivateKey, site);
+
+
     }
 
-    public static void testSelfIssueDoubleSiteCertificate(Function<SelfIssueCertVO, DoubleCertWithDoublePrivateKey> issue) throws IOException {
+    public static DoubleCertWithDoublePrivateKey selfIssueDoubleSiteCertificate(AbstractCertService abstractCertService) {
         SelfIssueCertVO vo = new SelfIssueCertVO();
         X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
         vo.setSubjectDn(siteDn);
@@ -79,16 +74,10 @@ public class CertServiceTestTool {
         vo.setNotBefore(notBefore);
         vo.setNotAfter(notAfter);
         vo.setSubjectAltNames(Collections.singletonList("www.site.com"));
-        DoubleCertWithDoublePrivateKey doubleCertWithDoublePrivateKey = issue.apply(vo);
-        Certificate sigCert = PemUtil.pem2Cert(doubleCertWithDoublePrivateKey.sigCert());
-        RDN[] sigRdNs = sigCert.getSubject().getRDNs(BCStyle.CN);
-        Assertions.assertEquals("www.site.com", sigRdNs[0].getTypesAndValues()[0].getValue().toString());
-        Certificate encCert = PemUtil.pem2Cert(doubleCertWithDoublePrivateKey.encCert());
-        RDN[] encRdNs = encCert.getSubject().getRDNs(BCStyle.CN);
-        Assertions.assertEquals("www.site.com", encRdNs[0].getTypesAndValues()[0].getValue().toString());
+        return abstractCertService.selfIssueDoubleCert(vo);
     }
 
-    public static void testCaIssueDoubleSiteCertificate(Function<SelfIssueCertVO, CertWithPrivateKey> issueCa, Function<CsrVO, CsrWithPrivateKey> issueCsr, Function<CaIssueCertVO, DoubleCertWithPrivateKey> caIssue) throws IOException {
+    public static CaWithTwoSite caIssueDoubleSiteCertificate(AbstractCertService abstractCertService) {
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
 
@@ -99,14 +88,14 @@ public class CertServiceTestTool {
         svo.setNotBefore(notBefore);
         svo.setNotAfter(notAfter);
         svo.setSubjectAltNames(Collections.singletonList("ROOT_CA"));
-        CertWithPrivateKey caCertWithPrivateKey = issueCa.apply(svo);
+        CertWithPrivateKey caCertWithPrivateKey = abstractCertService.selfIssueSingleCert(svo);
 
         CsrVO csrvo = new CsrVO();
         X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
         csrvo.setSubjectDn(siteDn);
         List<String> sans = Collections.singletonList("www.site.com");
         csrvo.setSubjectAltNames(sans);
-        CsrWithPrivateKey csrWithPrivateKey = issueCsr.apply(csrvo);
+        CsrWithPrivateKey csrWithPrivateKey = abstractCertService.generateCsr(csrvo);
 
         CaIssueCertVO cvo = new CaIssueCertVO();
         cvo.setCa(false);
@@ -115,17 +104,14 @@ public class CertServiceTestTool {
         cvo.setCsr(csrWithPrivateKey.csr());
         cvo.setCaCert(caCertWithPrivateKey.cert());
         cvo.setCaPrivateKey(caCertWithPrivateKey.privateKey());
-        DoubleCertWithPrivateKey doubleCertWithPrivateKey = caIssue.apply(cvo);
+        DoubleCertWithPrivateKey doubleCertWithPrivateKey = abstractCertService.caIssueDoubleCert(cvo);
 
-        Certificate sigCert = PemUtil.pem2Cert(doubleCertWithPrivateKey.sigCert());
-        RDN[] sigRdNs = sigCert.getSubject().getRDNs(BCStyle.CN);
-        Assertions.assertEquals("www.site.com", sigRdNs[0].getTypesAndValues()[0].getValue().toString());
-        Certificate encCert = PemUtil.pem2Cert(doubleCertWithPrivateKey.encCert());
-        RDN[] encRdNs = encCert.getSubject().getRDNs(BCStyle.CN);
-        Assertions.assertEquals("www.site.com", encRdNs[0].getTypesAndValues()[0].getValue().toString());
+        CertWithPrivateKey sig = new CertWithPrivateKey(doubleCertWithPrivateKey.sigCert(), csrWithPrivateKey.privateKey());
+        CertWithPrivateKey enc = new CertWithPrivateKey(doubleCertWithPrivateKey.encCert(), doubleCertWithPrivateKey.encPrivateKey());
+        return new CaWithTwoSite(caCertWithPrivateKey, sig, enc);
     }
 
-    public static void testCaIssueDoubleCertWithEnvelop(Function<SelfIssueCertVO, CertWithPrivateKey> issueCa, Function<CsrVO, CsrWithPrivateKey> issueCsr, Function<CaIssueCertVO, DoubleCertWithEnvelop> caIssue) throws Exception {
+    public static CaWithTwoSiteEnvelop caIssueDoubleCertWithEnvelop(AbstractCertService abstractCertService) {
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
 
@@ -136,14 +122,14 @@ public class CertServiceTestTool {
         svo.setNotBefore(notBefore);
         svo.setNotAfter(notAfter);
         svo.setSubjectAltNames(Collections.singletonList("ROOT_CA"));
-        CertWithPrivateKey caCertWithPrivateKey = issueCa.apply(svo);
+        CertWithPrivateKey caCertWithPrivateKey = abstractCertService.selfIssueSingleCert(svo);
 
         CsrVO csrvo = new CsrVO();
         X500Name siteDn = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "www.site.com");
         csrvo.setSubjectDn(siteDn);
         List<String> sans = Collections.singletonList("www.site.com");
         csrvo.setSubjectAltNames(sans);
-        CsrWithPrivateKey csrWithPrivateKey = issueCsr.apply(csrvo);
+        CsrWithPrivateKey csrWithPrivateKey = abstractCertService.generateCsr(csrvo);
 
         CaIssueCertVO cvo = new CaIssueCertVO();
         cvo.setCa(false);
@@ -152,13 +138,9 @@ public class CertServiceTestTool {
         cvo.setCsr(csrWithPrivateKey.csr());
         cvo.setCaCert(caCertWithPrivateKey.cert());
         cvo.setCaPrivateKey(caCertWithPrivateKey.privateKey());
-        DoubleCertWithEnvelop doubleCertWithEnvelop = caIssue.apply(cvo);
+        DoubleCertWithEnvelop doubleCertWithEnvelop = abstractCertService.caIssueDoubleCertWithEnvelop(cvo);
 
-        Certificate sigCert = PemUtil.pem2Cert(doubleCertWithEnvelop.sigCert());
-        RDN[] sigRdNs = sigCert.getSubject().getRDNs(BCStyle.CN);
-        Assertions.assertEquals("www.site.com", sigRdNs[0].getTypesAndValues()[0].getValue().toString());
-        Certificate encCert = PemUtil.pem2Cert(doubleCertWithEnvelop.encCert());
-        RDN[] encRdNs = encCert.getSubject().getRDNs(BCStyle.CN);
-        Assertions.assertEquals("www.site.com", encRdNs[0].getTypesAndValues()[0].getValue().toString());
+        CertWithPrivateKey sigSite = new CertWithPrivateKey(doubleCertWithEnvelop.sigCert(), csrWithPrivateKey.privateKey());
+        return new CaWithTwoSiteEnvelop(caCertWithPrivateKey, sigSite, doubleCertWithEnvelop.encCert(), doubleCertWithEnvelop.envelop());
     }
 }

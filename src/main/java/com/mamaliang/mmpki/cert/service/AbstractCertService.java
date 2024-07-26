@@ -2,9 +2,6 @@ package com.mamaliang.mmpki.cert.service;
 
 import com.mamaliang.mmpki.algorithm.SM2;
 import com.mamaliang.mmpki.cert.model.*;
-import com.mamaliang.mmpki.cert.model.CaIssueCertVO;
-import com.mamaliang.mmpki.cert.model.CsrVO;
-import com.mamaliang.mmpki.cert.model.SelfIssueCertVO;
 import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
 import com.mamaliang.mmpki.util.CSRUtil;
 import com.mamaliang.mmpki.util.CertUtil;
@@ -76,7 +73,9 @@ public abstract class AbstractCertService {
             String sigPrivateKeyPem = PemUtil.privateKey2pem(sigKeyPair.getPrivate());
             String encCertPem = PemUtil.cert2pem(encCert);
             String encPrivateKeyPem = PemUtil.privateKey2pem(encKeyPair.getPrivate());
-            return new DoubleCertWithDoublePrivateKey(sigCertPem, sigPrivateKeyPem, encCertPem, encPrivateKeyPem);
+            CertWithPrivateKey sig = new CertWithPrivateKey(sigCertPem, sigPrivateKeyPem);
+            CertWithPrivateKey enc = new CertWithPrivateKey(encCertPem, encPrivateKeyPem);
+            return new DoubleCertWithDoublePrivateKey(sig, enc);
         } catch (Exception e) {
             throw new RuntimeException("自签发双证书失败", e);
         }
