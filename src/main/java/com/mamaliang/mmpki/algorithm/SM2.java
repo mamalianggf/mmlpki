@@ -60,7 +60,7 @@ public class SM2 {
         ECCurve curve = sm2ECParameters.getCurve();
         ECPoint point = curve.createPoint(new BigInteger(1, x), new BigInteger(1, y));
         ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(point, sm2ECParameters);
-        KeyFactory keyFactory = KeyFactory.getInstance("EC", new BouncyCastleProvider());
+        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM, new BouncyCastleProvider());
         return (BCECPublicKey) keyFactory.generatePublic(pubKeySpec);
     }
 

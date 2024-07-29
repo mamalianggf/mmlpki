@@ -1,5 +1,6 @@
 package com.mamaliang.mmpki.util;
 
+import com.mamaliang.mmpki.algorithm.Dilithium;
 import org.bouncycastle.asn1.crmf.*;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -12,12 +13,10 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
 import java.io.IOException;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.List;
@@ -44,8 +43,14 @@ public class CSRUtil {
         ExtensionsGenerator extGen = new ExtensionsGenerator();
         extGen.addExtension(Extension.subjectAlternativeName, true, sans);
 
+        Provider provider;
+        if (Dilithium.ALGORITHM.equals(signatureAlgorithm)) {
+            provider = new BouncyCastlePQCProvider();
+        } else {
+            provider = new BouncyCastleProvider();
+        }
         ContentSigner contentSigner = new JcaContentSignerBuilder(signatureAlgorithm)
-                .setProvider(new BouncyCastleProvider())
+                .setProvider(provider)
                 .build(keyPair.getPrivate());
 
         return new JcaPKCS10CertificationRequestBuilder(dn, keyPair.getPublic())

@@ -1,5 +1,6 @@
 package com.mamaliang.mmpki.util;
 
+import com.mamaliang.mmpki.algorithm.Dilithium;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
@@ -12,6 +13,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -87,8 +89,14 @@ public class CertUtil {
         BigInteger serial = generateSerial();
 
         // content sign function
+        Provider provider;
+        if (Dilithium.ALGORITHM.equals(signatureAlgorithm)) {
+            provider = new BouncyCastlePQCProvider();
+        } else {
+            provider = new BouncyCastleProvider();
+        }
         ContentSigner contentSigner = new JcaContentSignerBuilder(signatureAlgorithm)
-                .setProvider(new BouncyCastleProvider())
+                .setProvider(provider)
                 .build(issuerPrivateKey);
 
         // add ext
