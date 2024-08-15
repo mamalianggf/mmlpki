@@ -12,10 +12,7 @@ import org.bouncycastle.util.io.pem.PemWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 
@@ -66,6 +63,8 @@ public class PemUtil {
         }
     }
 
+    // 只支持pkcs8私钥类型,可以用以下命令将原始的ec私钥转换成pkcs8私钥类型
+    // openssl pkcs8 -topk8 -inform PEM -outform PEM -in ec_private_key.pem -out pkcs8_private_key.pem -nocrypt
     public static PrivateKey pem2privateKey(String pem) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         try (StringReader stringReader = new StringReader(pem);
              PEMParser pemParser = new PEMParser(stringReader)) {
