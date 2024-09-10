@@ -295,7 +295,7 @@ public class CertTest {
     }
 
     @Test
-    public void test1() throws Exception {
+    public void assembleEnvelop() throws Exception {
         String encPrivateKeyPem = """
                 -----BEGIN PRIVATE KEY-----
                 MIGHAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBG0wawIBAQQgnHMsugjNdINpHznj

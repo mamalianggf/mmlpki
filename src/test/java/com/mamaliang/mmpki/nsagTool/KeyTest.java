@@ -80,7 +80,7 @@ public class KeyTest {
 
                 int index = ASN1Integer.getInstance(vKey.getObjectAt(2)).getValue().intValue();
                 if (oldIndex != index) {
-                    System.out.println("index not matched");
+                    System.out.println("index not matched,index in key is " + index);
                     return;
                 }
 
