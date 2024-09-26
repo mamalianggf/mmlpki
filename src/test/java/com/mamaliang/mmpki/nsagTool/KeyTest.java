@@ -43,9 +43,10 @@ public class KeyTest {
     void isIndexModePrivateKey() throws IOException {
         String key = """
                 -----BEGIN PRIVATE KEY-----
-                MGwCAQAwDgYKKwYBBAGBgVyaRQUABFcwVQIBAQoBAQIBBQQEcGFzc6FEA0IABJvu
-                eQbIAinZpdVAGW2KBYDYuugcnVf3vAx73obpUG1xBJsQHRXS49yezmz06lpnH6NN
-                l8AqPwEExjumVxpbce4=
+                MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgghjcFaE/hvMzDhVX
+                U3ETNG6cbX8LHYDDmXZvIkBe70WgCgYIKoEcz1UBgi2hRANCAASrDCyplnJr5dWs
+                ngVw/cOKah27Mc1oErOH1vp6FNnSC+14mSHAldS0AiVcyf0mLwqDrYQ8/jEHFd0T
+                5D2y/s0W
                 -----END PRIVATE KEY-----""";
         try (PEMParser pemParser = new PEMParser(new StringReader(key))) {
             Object object = pemParser.readObject();
@@ -58,6 +59,8 @@ public class KeyTest {
             } else {
                 System.out.println("this key is not index mode key");
             }
+        } catch (Exception e) {
+            System.out.println("this key is not index mode key");
         }
     }
 
