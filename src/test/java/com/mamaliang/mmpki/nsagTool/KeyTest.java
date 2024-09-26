@@ -40,7 +40,7 @@ public class KeyTest {
     }
 
     @Test
-    void isIndexModePrivateKey() throws IOException {
+    void isIndexModePrivateKey() {
         String key = """
                 -----BEGIN PRIVATE KEY-----
                 MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgghjcFaE/hvMzDhVX
