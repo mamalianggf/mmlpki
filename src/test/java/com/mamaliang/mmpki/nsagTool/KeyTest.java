@@ -27,7 +27,7 @@ import java.security.NoSuchAlgorithmException;
 public class KeyTest {
 
     @Test
-    void sm2() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException {
+    void generateSm2Key() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException {
         KeyPair keyPair = SM2.generateKeyPair();
         String privateKeyPem = PemUtil.privateKey2pem(keyPair.getPrivate());
         String publicKeyPem = PemUtil.publicKey2pem(keyPair.getPublic());
@@ -36,6 +36,28 @@ public class KeyTest {
              FileWriter pub = new FileWriter("/Users/mamaliang/Downloads/sm2Public.key")) {
             pri.write(privateKeyPem);
             pub.write(publicKeyPem);
+        }
+    }
+
+    @Test
+    void isIndexModePrivateKey() throws IOException {
+        String key = """
+                -----BEGIN PRIVATE KEY-----
+                MGwCAQAwDgYKKwYBBAGBgVyaRQUABFcwVQIBAQoBAQIBBQQEcGFzc6FEA0IABJvu
+                eQbIAinZpdVAGW2KBYDYuugcnVf3vAx73obpUG1xBJsQHRXS49yezmz06lpnH6NN
+                l8AqPwEExjumVxpbce4=
+                -----END PRIVATE KEY-----""";
+        try (PEMParser pemParser = new PEMParser(new StringReader(key))) {
+            Object object = pemParser.readObject();
+            if (object instanceof PrivateKeyInfo privateKeyInfo) {
+                // vKey外层有个pKey
+                ASN1Sequence pKey = ASN1Sequence.getInstance(privateKeyInfo.getEncoded());
+                ASN1Sequence vKey = ASN1Sequence.getInstance(ASN1OctetString.getInstance(pKey.getObjectAt(2)).getOctets());
+                int index = ASN1Integer.getInstance(vKey.getObjectAt(2)).getValue().intValue();
+                System.out.println("this key is index mode key, index of key is " + index);
+            } else {
+                System.out.println("this key is not index mode key");
+            }
         }
     }
 
