@@ -26,14 +26,16 @@ import java.security.NoSuchAlgorithmException;
 @Disabled
 public class KeyTest {
 
+    private static final String STORE_PATH = "/Users/mamaliang/Workspace/mmlpki/db/";
+
     @Test
     void generateSm2Key() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException {
         KeyPair keyPair = SM2.generateKeyPair();
         String privateKeyPem = PemUtil.privateKey2pem(keyPair.getPrivate());
         String publicKeyPem = PemUtil.publicKey2pem(keyPair.getPublic());
 
-        try (FileWriter pri = new FileWriter("/Users/mamaliang/Downloads/sm2Private.pem");
-             FileWriter pub = new FileWriter("/Users/mamaliang/Downloads/sm2Public.key")) {
+        try (FileWriter pri = new FileWriter(STORE_PATH + "sm2Private.pem");
+             FileWriter pub = new FileWriter(STORE_PATH + "sm2Public.key")) {
             pri.write(privateKeyPem);
             pub.write(publicKeyPem);
         }

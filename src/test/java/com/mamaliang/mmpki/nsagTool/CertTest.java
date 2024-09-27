@@ -32,13 +32,13 @@ import java.util.Date;
 @Disabled
 public class CertTest {
 
-    private final String storePath = "/Users/mamaliang/Workspace/mmlpki/db/";
+    private static final String STORE_PATH = "/Users/mamaliang/Workspace/mmlpki/db/";
 
     @Test
     void sm2SelfIssueSingleCert() throws IOException {
         CertWithPrivateKey certWithPrivateKey = CertServiceTool.selfIssueSiteCertificate(new SM2CertServiceImpl());
-        try (FileWriter cert = new FileWriter(storePath + "sm2SelfIssue.pem");
-             FileWriter key = new FileWriter(storePath + "sm2SelfIssue.key")) {
+        try (FileWriter cert = new FileWriter(STORE_PATH + "sm2SelfIssue.pem");
+             FileWriter key = new FileWriter(STORE_PATH + "sm2SelfIssue.key")) {
             cert.write(certWithPrivateKey.cert());
             key.write(certWithPrivateKey.privateKey());
         }
@@ -47,8 +47,8 @@ public class CertTest {
     @Test
     void rsaSelfIssueSingleCert() throws IOException {
         CertWithPrivateKey certWithPrivateKey = CertServiceTool.selfIssueSiteCertificate(new RSACertServiceImpl());
-        try (FileWriter cert = new FileWriter(storePath + "rsaSelfIssue.pem");
-             FileWriter key = new FileWriter(storePath + "rsaSelfIssue.key")) {
+        try (FileWriter cert = new FileWriter(STORE_PATH + "rsaSelfIssue.pem");
+             FileWriter key = new FileWriter(STORE_PATH + "rsaSelfIssue.key")) {
             cert.write(certWithPrivateKey.cert());
             key.write(certWithPrivateKey.privateKey());
         }
@@ -57,8 +57,8 @@ public class CertTest {
     @Test
     void eccSelfIssueSingleCert() throws IOException {
         CertWithPrivateKey certWithPrivateKey = CertServiceTool.selfIssueSiteCertificate(new ECCCertServiceImpl());
-        try (FileWriter cert = new FileWriter(storePath + "eccSelfIssue.pem");
-             FileWriter key = new FileWriter(storePath + "eccSelfIssue.key")) {
+        try (FileWriter cert = new FileWriter(STORE_PATH + "eccSelfIssue.pem");
+             FileWriter key = new FileWriter(STORE_PATH + "eccSelfIssue.key")) {
             cert.write(certWithPrivateKey.cert());
             key.write(certWithPrivateKey.privateKey());
         }
@@ -67,8 +67,8 @@ public class CertTest {
     @Test
     void dilithiumSelfIssueSingleCert() throws IOException {
         CertWithPrivateKey certWithPrivateKey = CertServiceTool.selfIssueSiteCertificate(new DilithiumCertServiceImpl());
-        try (FileWriter cert = new FileWriter(storePath + "dilithiumSelfIssue.pem");
-             FileWriter key = new FileWriter(storePath + "dilithiumSelfIssue.key")) {
+        try (FileWriter cert = new FileWriter(STORE_PATH + "dilithiumSelfIssue.pem");
+             FileWriter key = new FileWriter(STORE_PATH + "dilithiumSelfIssue.key")) {
             cert.write(certWithPrivateKey.cert());
             key.write(certWithPrivateKey.privateKey());
         }
@@ -200,7 +200,7 @@ public class CertTest {
         caIssueCertVO.setNotBefore(new Date());
         caIssueCertVO.setNotAfter(new Date(new Date().getTime() + 10 * 360 * 24 * 60 * 60 * 1000L));
         String certPem = new DilithiumCertServiceImpl().caIssueSingleCert(caIssueCertVO);
-        try (FileWriter cert = new FileWriter(storePath + "dilithiumCaIssue.pem")) {
+        try (FileWriter cert = new FileWriter(STORE_PATH + "dilithiumCaIssue.pem")) {
             cert.write(certPem);
         }
     }
@@ -213,10 +213,10 @@ public class CertTest {
     @Test
     void sm2SelfIssueDoubleSiteCertificate() throws IOException {
         DoubleCertWithDoublePrivateKey doubleCertWithDoublePrivateKey = CertServiceTool.selfIssueDoubleSiteCertificate(new SM2CertServiceImpl());
-        try (FileWriter sigCert = new FileWriter(storePath + "sm2SelfIssueSig.pem");
-             FileWriter sigKey = new FileWriter(storePath + "sm2SelfIssueSig.key");
-             FileWriter encCert = new FileWriter(storePath + "sm2SelfIssueEnc.pem");
-             FileWriter encKey = new FileWriter(storePath + "sm2SelfIssueEnc.key")) {
+        try (FileWriter sigCert = new FileWriter(STORE_PATH + "sm2SelfIssueSig.pem");
+             FileWriter sigKey = new FileWriter(STORE_PATH + "sm2SelfIssueSig.key");
+             FileWriter encCert = new FileWriter(STORE_PATH + "sm2SelfIssueEnc.pem");
+             FileWriter encKey = new FileWriter(STORE_PATH + "sm2SelfIssueEnc.key")) {
             sigCert.write(doubleCertWithDoublePrivateKey.sig().cert());
             sigKey.write(doubleCertWithDoublePrivateKey.sig().privateKey());
             encCert.write(doubleCertWithDoublePrivateKey.enc().cert());
@@ -230,12 +230,12 @@ public class CertTest {
     @Test
     void sm2CaIssueDoubleCertificate() throws IOException {
         CaWithTwoSite caWithTwoSite = CertServiceTool.caIssueDoubleSiteCertificate(new SM2CertServiceImpl());
-        try (FileWriter caPem = new FileWriter(storePath + "sm2rootca.pem");
-             FileWriter caKey = new FileWriter(storePath + "sm2rootca.key");
-             FileWriter user1PemSig = new FileWriter(storePath + "sm2CaIssueUser1Sig.pem");
-             FileWriter user1KeySig = new FileWriter(storePath + "sm2CaIssueUser1Sig.key");
-             FileWriter user1PemEnc = new FileWriter(storePath + "sm2CaIssueUser1Enc.pem");
-             FileWriter user1KeyEnc = new FileWriter(storePath + "sm2CaIssueUser1Enc.key")) {
+        try (FileWriter caPem = new FileWriter(STORE_PATH + "sm2rootca.pem");
+             FileWriter caKey = new FileWriter(STORE_PATH + "sm2rootca.key");
+             FileWriter user1PemSig = new FileWriter(STORE_PATH + "sm2CaIssueUser1Sig.pem");
+             FileWriter user1KeySig = new FileWriter(STORE_PATH + "sm2CaIssueUser1Sig.key");
+             FileWriter user1PemEnc = new FileWriter(STORE_PATH + "sm2CaIssueUser1Enc.pem");
+             FileWriter user1KeyEnc = new FileWriter(STORE_PATH + "sm2CaIssueUser1Enc.key")) {
             caPem.write(caWithTwoSite.ca().cert());
             caKey.write(caWithTwoSite.ca().privateKey());
             user1PemSig.write(caWithTwoSite.sigSite().cert());
@@ -250,7 +250,7 @@ public class CertTest {
      */
     @Test
     void sm2CaIssueDoubleCertificateEnvelop() throws IOException {
-        String path = storePath + "密钥不落地/";
+        String path = STORE_PATH + "密钥不落地/";
         String caCommonName = "SM2ROOTCA";
         String p10 = """
                 -----BEGIN CERTIFICATE REQUEST-----
@@ -355,7 +355,7 @@ public class CertTest {
         PublicKey sigPublicKey = CertUtil.extraPublicKey(sigCert);
 
         String envelop = EnvelopedUtil.assembleFront((BCECPrivateKey) encPrivateKey, (BCECPublicKey) encPublicKey, (BCECPublicKey) sigPublicKey);
-        try (FileWriter assembleEnvelop = new FileWriter(storePath + "assembleEnvelop.pem")) {
+        try (FileWriter assembleEnvelop = new FileWriter(STORE_PATH + "assembleEnvelop.pem")) {
             assembleEnvelop.write(envelop);
         }
     }

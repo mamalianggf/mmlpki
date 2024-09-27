@@ -6,6 +6,7 @@ import com.mamaliang.mmpki.gmt0016.SKFLibraryWrapper;
 import com.mamaliang.mmpki.gmt0016.SKF_ENVELOPEDKEYBLOB;
 import com.mamaliang.mmpki.gmt0016.Struct_ECCPUBLICKEYBLOB;
 import com.mamaliang.mmpki.util.CertUtil;
+import com.mamaliang.mmpki.util.PemUtil;
 import com.mamaliang.mmpki.util.X500NameUtil;
 import com.sun.jna.Pointer;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -15,6 +16,7 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileWriter;
 import java.security.KeyPair;
 import java.util.Collections;
 import java.util.Date;
@@ -30,6 +32,7 @@ import java.util.Objects;
 @Disabled
 public class GM3000Test {
 
+    private static final String STORE_PATH = "/Users/mamaliang/Workspace/mmlpki/db/";
     private static final String DYNAMIC_LIB_NAME = "gm3000.1.0";
     private static final String USER_PIN = "12345678";
 
@@ -39,10 +42,8 @@ public class GM3000Test {
         String cn = "gaof";
         // 展示
         listContainer();
-
-        // 展示
+        // 删除
 //        deleteContainer(containerName);
-
         // 1.创建容器 2.生成签名密钥对 3.密钥不落地形式导入
 //        createContainer(containerName);
 //        makeContainer(containerName, cn);
@@ -155,6 +156,11 @@ public class GM3000Test {
             skf.ImportECCKeyPair(hContainer, skfEnvelopedkeyblob);
             Certificate sm2ENC = CertUtil.caIssueCert(false, false, true, siteName, encKeyPair.getPublic(), notBefore, notAfter, caName, CertUtil.generateSANExt(Collections.singletonList(cn)), caKeyPair.getPublic(), caKeyPair.getPrivate(), SM2.SIGNATURE_SM3_WITH_SM2);
             skf.importCertificate(hContainer, false, sm2ENC.getEncoded());
+            try (FileWriter caCertFile = new FileWriter(STORE_PATH + "ca.pem");
+                 FileWriter caKeyFile = new FileWriter(STORE_PATH + "ca.key")) {
+                caCertFile.write(PemUtil.cert2pem(sm2ROOT));
+                caKeyFile.write(PemUtil.privateKey2pem(caKeyPair.getPrivate()));
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
