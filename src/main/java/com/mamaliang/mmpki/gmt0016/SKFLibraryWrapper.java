@@ -6,7 +6,6 @@ import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 import lombok.extern.slf4j.Slf4j;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -142,7 +141,7 @@ public class SKFLibraryWrapper {
     public void getContainerType(Pointer hContainer) {
         IntByReference lbf = new IntByReference();
         checkError(uKey.SKF_GetContainerType(hContainer, lbf));
-        String type = switch ((int) lbf.getValue()) {
+        String type = switch (lbf.getValue()) {
             case 1 -> "RSA";
             case 2 -> "SM2";
             default -> "未定、尚未分配类型或者空容器";
@@ -188,17 +187,35 @@ public class SKFLibraryWrapper {
     /**
      * plain应是待签名数据的杂凑值
      */
-    public Struct_ECCSIGNATUREBLOB eccSignData(Pointer hContainer, byte[] plain) {
-        Struct_ECCSIGNATUREBLOB.ByReference byReference = new Struct_ECCSIGNATUREBLOB.ByReference();
-        checkError(uKey.SKF_ECCSignData(hContainer, plain, plain.length, byReference));
-        log.info("签名成功");
-        return byReference;
+//    public Struct_ECCSIGNATUREBLOB eccSignData(Pointer hContainer, byte[] plain) {
+//        Struct_ECCSIGNATUREBLOB.ByReference byReference = new Struct_ECCSIGNATUREBLOB.ByReference();
+//        checkError(uKey.SKF_ECCSignData(hContainer, plain, plain.length, byReference));
+//        log.info("签名成功");
+//        return byReference;
+//    }
+
+//    public void eccExportSessionKey(Pointer hContainer, Struct_ECCPUBLICKEYBLOB pPubKey, Struct_ECCCIPHERBLOB pData, PointerByReference phSessionKey) {
+//        checkError(uKey.SKF_ECCExportSessionKey(hContainer, AlgorithmID.SGD_SM4_CBC, pPubKey, pData, phSessionKey));
+//        log.info("导出会话密钥成功");
+//    }
+    public Pointer importSessionKey(Pointer hContainer, int ulAlgId, Struct_ECCCIPHERBLOB pbWrapedData) {
+        byte[] encryptedSessionKey = Struct_ECCCIPHERBLOB.encode(pbWrapedData);
+        PointerByReference phKey = new PointerByReference();
+        checkError(uKey.SKF_ImportSessionKey(hContainer, ulAlgId, encryptedSessionKey, encryptedSessionKey.length, phKey));
+        log.info("导入" + ulAlgId + "类型会话密钥成功");
+        return phKey.getValue();
     }
 
-    public void eccExportSessionKey(Pointer hContainer, Struct_ECCPUBLICKEYBLOB pPubKey, Struct_ECCCIPHERBLOB pData, PointerByReference phSessionKey) {
-        checkError(uKey.SKF_ECCExportSessionKey(hContainer, AlgorithmID.SGD_SM4_CBC, pPubKey, pData, phSessionKey));
-        log.info("导出会话密钥成功");
+    public byte[] decrypt(Pointer hKey, Struct_BLOCKCIPHERPARAM.ByValue decryptParam, byte[] encryptedText) {
+        checkError(uKey.SKF_DecryptInit(hKey, decryptParam));
+        byte[] pbData = new byte[100];
+        IntByReference pulDataLen = new IntByReference(100);
+        checkError(uKey.SKF_Decrypt(hKey, encryptedText, encryptedText.length, pbData, pulDataLen));
+        log.info("解密成功");
+        int len = pulDataLen.getValue();
+        return Arrays.copyOf(pbData, len);
     }
+
 
     private static void checkError(int ret) {
         if (ret != 0) {

@@ -1,6 +1,7 @@
 package com.mamaliang.mmpki.gmt0016;
 
 import com.mamaliang.mmpki.algorithm.AlgorithmID;
+import com.mamaliang.mmpki.algorithm.SM1;
 import com.mamaliang.mmpki.algorithm.SM2;
 import com.mamaliang.mmpki.algorithm.SM4;
 import com.mamaliang.mmpki.gmt0009.SM2Cipher;
@@ -26,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 
 /**
@@ -40,30 +42,35 @@ public class EnvelopedUtil {
     /**
      * 解信封:从信封中提取加密私钥
      *
-     * @param eccEnvelopedKeyBlobBase64 信封内容
-     * @param signPrivateKey            签名私钥
+     * @param eccEnvelopedKeyBlob   信封
+     * @param signPrivateKey        签名私钥
+     * @param dynamicLibName        用于SM1,当使用
+     * @param existEccContainerName 用于SM1
+     * @return 加密私钥
      */
-    public static BCECPrivateKey disassembleFront(String eccEnvelopedKeyBlobBase64, BCECPrivateKey signPrivateKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException {
-        byte[] eccEnvelopedKeyBlobBytes = Base64.getDecoder().decode(eccEnvelopedKeyBlobBase64.getBytes(StandardCharsets.UTF_8));
-        SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob = SKF_ENVELOPEDKEYBLOB.decode(eccEnvelopedKeyBlobBytes);
-
-        return disassembleBackend(eccEnvelopedKeyBlob, signPrivateKey);
-    }
-
-    public static BCECPrivateKey disassembleBackend(SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob, BCECPrivateKey signPrivateKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException {
-        // 组装密文
+    public static BCECPrivateKey disassemble(SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob, BCECPrivateKey signPrivateKey, String dynamicLibName, String existEccContainerName) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException {
+        // 组装非对称密文
         byte[] encryptData = constructEncryptData(eccEnvelopedKeyBlob);
-
         // 依靠签名私钥解出对称密钥
         byte[] symmKey = SM2.decrypt(signPrivateKey, encryptData);
 
-        // 依靠对称密码解出加密私钥
-        SecretKey key = new SecretKeySpec(symmKey, "SM4");
-        // 由于d是32位,且由组装时扩充到64位所以,这里需要移除前面所有的0
+        // 由于加密私钥的d是32位,且由组装时扩充到64位所以,这里需要移除前面所有的0
         byte[] tempCbEncryptedPrivKey = new byte[32];
         System.arraycopy(eccEnvelopedKeyBlob.cbEncryptedPrivKey, 32, tempCbEncryptedPrivKey, 0, 32);
-        byte[] encPrivateKeyBytes = SM4.ecbDecrypt(key, tempCbEncryptedPrivKey);
 
+        byte[] encPrivateKeyBytes;
+
+        int ulSymmAlgId = eccEnvelopedKeyBlob.ulSymmAlgId;
+        if (AlgorithmID.SGD_SM1_ECB == ulSymmAlgId) {
+            // SM1没有软件实现，需要使用硬件解密
+            encPrivateKeyBytes = SM1.ecbDecrypt(dynamicLibName, existEccContainerName, symmKey, tempCbEncryptedPrivKey);
+        } else if (AlgorithmID.SGD_SM4_ECB == ulSymmAlgId) {
+            // 依靠SM4对称密码解出加密私钥
+            SecretKey key = new SecretKeySpec(symmKey, "SM4");
+            encPrivateKeyBytes = SM4.ecbDecrypt(key, tempCbEncryptedPrivKey);
+        } else {
+            throw new UnsupportedOperationException("规范中只约定了SM1和SM4");
+        }
         return SM2.convert2PrivateKey(encPrivateKeyBytes);
     }
 
@@ -73,16 +80,9 @@ public class EnvelopedUtil {
      * @param encPrivateKey 加密证书私钥
      * @param encPublicKey  加密证书公钥
      * @param signPublicKey 签名证书公钥
-     * @return 信封base64
+     * @return 信封
      */
-    public static String assembleFront(BCECPrivateKey encPrivateKey, BCECPublicKey encPublicKey, BCECPublicKey signPublicKey) throws Exception {
-
-        SKF_ENVELOPEDKEYBLOB skfEnvelopedkeyblob = assembleBackend(encPrivateKey, encPublicKey, signPublicKey);
-
-        return new String(Base64.getEncoder().encode(SKF_ENVELOPEDKEYBLOB.encode(skfEnvelopedkeyblob)), StandardCharsets.UTF_8);
-    }
-
-    public static SKF_ENVELOPEDKEYBLOB assembleBackend(BCECPrivateKey encPrivateKey, BCECPublicKey encPublicKey, BCECPublicKey signPublicKey) throws Exception {
+    public static SKF_ENVELOPEDKEYBLOB assemble(BCECPrivateKey encPrivateKey, BCECPublicKey encPublicKey, BCECPublicKey signPublicKey) throws Exception {
         // 加密私钥中提取 d
         BigInteger d = encPrivateKey.getD();
         byte[] dBytes = d.toByteArray();

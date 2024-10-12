@@ -3,6 +3,7 @@ package com.mamaliang.mmpki.cert.service;
 import com.mamaliang.mmpki.algorithm.SM2;
 import com.mamaliang.mmpki.cert.model.*;
 import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
+import com.mamaliang.mmpki.gmt0016.SKF_ENVELOPEDKEYBLOB;
 import com.mamaliang.mmpki.util.CSRUtil;
 import com.mamaliang.mmpki.util.CertUtil;
 import com.mamaliang.mmpki.util.PemUtil;
@@ -161,8 +162,8 @@ public abstract class AbstractCertService {
             String sigCertPem = PemUtil.cert2pem(sigCert);
             String encCertPem = PemUtil.cert2pem(encCert);
 
-            String envelop = EnvelopedUtil.assembleFront((BCECPrivateKey) encKeyPair.getPrivate(), (BCECPublicKey) encKeyPair.getPublic(), (BCECPublicKey) sigSubjectPublicKey);
-            return new DoubleCertWithEnvelop(sigCertPem, encCertPem, envelop);
+            SKF_ENVELOPEDKEYBLOB envelopedKeyBlob = EnvelopedUtil.assemble((BCECPrivateKey) encKeyPair.getPrivate(), (BCECPublicKey) encKeyPair.getPublic(), (BCECPublicKey) sigSubjectPublicKey);
+            return new DoubleCertWithEnvelop(sigCertPem, encCertPem, SKF_ENVELOPEDKEYBLOB.toBase64String(envelopedKeyBlob));
         } catch (Exception e) {
             throw new RuntimeException("ca签发密钥不落地证书失败", e);
         }

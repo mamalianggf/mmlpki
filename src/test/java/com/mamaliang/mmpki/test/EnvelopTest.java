@@ -6,6 +6,7 @@ import com.mamaliang.mmpki.cert.service.impl.SM2CertServiceImpl;
 import com.mamaliang.mmpki.gmt0009.SM2EnvelopedKey;
 import com.mamaliang.mmpki.gmt0010.SignedAndEnvelopedData;
 import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
+import com.mamaliang.mmpki.gmt0016.SKF_ENVELOPEDKEYBLOB;
 import com.mamaliang.mmpki.util.CertUtil;
 import com.mamaliang.mmpki.util.PemUtil;
 import com.mamaliang.mmpki.util.X500NameUtil;
@@ -115,7 +116,7 @@ public class EnvelopTest {
         svo.setNotBefore(notBefore);
         svo.setNotAfter(notAfter);
         svo.setSubjectAltNames(Collections.singletonList(caCommonName));
-        CertWithPrivateKey caCertWithPrivateKey =  new SM2CertServiceImpl().selfIssueSingleCert(svo);
+        CertWithPrivateKey caCertWithPrivateKey = new SM2CertServiceImpl().selfIssueSingleCert(svo);
         // ca签发双证书(信封)
         CaIssueCertVO cvo = new CaIssueCertVO();
         cvo.setCa(false);
@@ -124,10 +125,10 @@ public class EnvelopTest {
         cvo.setCsr(csrWithPrivateKey.csr());
         cvo.setCaCert(caCertWithPrivateKey.cert());
         cvo.setCaPrivateKey(caCertWithPrivateKey.privateKey());
-        DoubleCertWithEnvelop doubleCertWithEnvelop =  new SM2CertServiceImpl().caIssueDoubleCertWithEnvelop(cvo);
+        DoubleCertWithEnvelop doubleCertWithEnvelop = new SM2CertServiceImpl().caIssueDoubleCertWithEnvelop(cvo);
         // 从信封解出来的私钥和证书中的公钥的是否为一对
         BCECPublicKey encPublic = (BCECPublicKey) CertUtil.extraPublicKey(PemUtil.pem2Cert(doubleCertWithEnvelop.encCert()));
-        BCECPrivateKey encPrivate = EnvelopedUtil.disassembleFront(doubleCertWithEnvelop.envelop(), (BCECPrivateKey) PemUtil.pem2privateKey(csrWithPrivateKey.privateKey()));
+        BCECPrivateKey encPrivate = EnvelopedUtil.disassemble(SKF_ENVELOPEDKEYBLOB.fromBase64String(doubleCertWithEnvelop.envelop()), (BCECPrivateKey) PemUtil.pem2privateKey(csrWithPrivateKey.privateKey()), null, null);
         String plainText = "hello world";
         byte[] encrypt = SM2.encrypt(encPublic, plainText.getBytes(StandardCharsets.UTF_8));
         byte[] decrypt = SM2.decrypt(encPrivate, encrypt);

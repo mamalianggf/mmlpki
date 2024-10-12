@@ -54,25 +54,22 @@ public interface SKFLibrary extends Library {
     int SKF_ExportCertificate(Pointer hContainer, boolean bSignFlag, byte[] pbCert, IntByReference pulCertLen);
 
     // ----- 密钥函数 ----- //
-    //
-    //    int SKF_DigestInit(Pointer hdev, int alg_hash, Struct_ECCPUBLICKEYBLOB ecc_pub, String pubid, int ulIDLen, PointerByReference hHash);
-    //
-    //    int SKF_Digest(Pointer hHash, String pbData, int ulDataLen, Struct_SM3BLOB pbHashData, IntByReference pulHashLen);
-    //
-    //    int SKF_Digest(Pointer hHash, byte[] pbData, int ulDataLen, Struct_SM3BLOB pbHashData, IntByReference pulHashLen);
-    //
-    //    int SKF_Digest(Pointer hHash, byte[] pbData, int ulDataLen, Struct_SM3BLOB pbHashData, int pulHashLen);
-    //
-    int SKF_ECCSignData(Pointer hContainer, byte[] pbData, int ulDataLen, Struct_ECCSIGNATUREBLOB pSignature);
-
+    //    int SKF_ECCSignData(Pointer hContainer, byte[] pbData, int ulDataLen, Struct_ECCSIGNATUREBLOB pSignature);
     //
     //    int SKF_ECCVerify(Pointer hDev, Struct_ECCPUBLICKEYBLOB pECCPubKeyBlob, Struct_SM3BLOB pbData, int ulDataLen, Struct_ECCSIGNATUREBLOB pSignature);
     //
-    int SKF_ECCExportSessionKey(Pointer hContainer, int ulAlgId, Struct_ECCPUBLICKEYBLOB pPubKey, Struct_ECCCIPHERBLOB pData, PointerByReference phSessionKey);
+    //    int SKF_ECCExportSessionKey(Pointer hContainer, int ulAlgId, Struct_ECCPUBLICKEYBLOB pPubKey, Struct_ECCCIPHERBLOB pData, PointerByReference phSessionKey);
 
-    int SKF_EncryptInit(Pointer hKey, Struct_BLOCKCIPHERPARAM EncryptParam);
+    int SKF_ImportSessionKey(Pointer hContainer, int ulAlgId, byte[] pbWrapedData, int ulWrapedLen, PointerByReference phKey);
 
-    int SKF_Encrypt(Pointer hKey, byte[] pbData, int ulDataLen, byte[] pbEncryptedData, IntByReference pulEncryptedLen);
+    //    int SKF_EncryptInit(Pointer hKey, Struct_BLOCKCIPHERPARAM EncryptParam);
+    //
+    //    int SKF_Encrypt(Pointer hKey, byte[] pbData, int ulDataLen, byte[] pbEncryptedData, IntByReference pulEncryptedLen);
+
+    int SKF_DecryptInit(Pointer hKey, Struct_BLOCKCIPHERPARAM.ByValue decryptParam);
+
+    int SKF_Decrypt(Pointer hKey, byte[] pbEncryptedData, int ulEncryptedLen, byte[] pbData, IntByReference pulDataLen);
+
     //    int SKF_CloseHandle(Pointer hkey);
 
 }

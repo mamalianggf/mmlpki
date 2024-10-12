@@ -6,22 +6,14 @@ import com.mamaliang.mmpki.cert.service.impl.DilithiumCertServiceImpl;
 import com.mamaliang.mmpki.cert.service.impl.ECCCertServiceImpl;
 import com.mamaliang.mmpki.cert.service.impl.RSACertServiceImpl;
 import com.mamaliang.mmpki.cert.service.impl.SM2CertServiceImpl;
-import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
 import com.mamaliang.mmpki.model.CaWithTwoSite;
-import com.mamaliang.mmpki.util.CertUtil;
-import com.mamaliang.mmpki.util.PemUtil;
 import com.mamaliang.mmpki.util.X500NameUtil;
 import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x509.Certificate;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.util.Collections;
 import java.util.Date;
 
@@ -291,72 +283,6 @@ public class CertTest {
             sig.write(doubleCertWithEnvelop.sigCert());
             enc.write(doubleCertWithEnvelop.encCert());
             envelop.write(doubleCertWithEnvelop.envelop());
-        }
-    }
-
-    @Test
-    public void assembleEnvelop() throws Exception {
-        String encPrivateKeyPem = """
-                -----BEGIN PRIVATE KEY-----
-                MIGHAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBG0wawIBAQQgnHMsugjNdINpHznj
-                6Hmwe1dpZA4ecfKhKgW0dpZVgeGhRANCAATHPM9VI51UWq0WBCGMBa3R63ngP4ts
-                6c6jjzN5/WzX/6b5heOeLTAFyIF6ufd0e47F8nT2bPuy61HHHvLtuQX2
-                -----END PRIVATE KEY-----""";
-        PrivateKey encPrivateKey = PemUtil.pem2privateKey(encPrivateKeyPem);
-
-        String encCertPem = """
-                -----BEGIN CERTIFICATE-----
-                MIIDczCCAxegAwIBAgIIdMEAQARXlU4wDAYIKoEcz1UBg3UFADBSMQswCQYDVQQG
-                EwJDTjEvMC0GA1UECgwmWmhlamlhbmcgRGlnaXRhbCBDZXJ0aWZpY2F0ZSBBdXRo
-                b3JpdHkxEjAQBgNVBAMMCVpKQ0EgT0NBMTAeFw0yNDA4MTMxNjAwMDBaFw0yNTA4
-                MTQxNTU5NTlaMCQxCzAJBgNVBAYTAkNOMRUwEwYDVQQDDAwxMC41NC4zOC4yMDQw
-                WTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAATHPM9VI51UWq0WBCGMBa3R63ngP4ts
-                6c6jjzN5/WzX/6b5heOeLTAFyIF6ufd0e47F8nT2bPuy61HHHvLtuQX2o4ICATCC
-                Af0wDAYDVR0TBAUwAwEBADAOBgNVHQ8BAf8EBAMCADAwFwYDVR0RBBAwDoIMMTAu
-                NTQuMzguMjA0MCsGCSsGAQQBgjcUAgQeHhwAUwBtAGEAcgB0AGMAYQByAGQATABv
-                AGcAbwBuMB8GA1UdIwQYMBaAFKfTsSSQIB09tFTuSzcoUpGuLGoiMIGxBgNVHR8E
-                gakwgaYwgaOggaCggZ2GgZpsZGFwOi8vbGRhcC56amNhLmNvbS5jbi9DTj1aSkNB
-                IE9DQTFncm91cDcyODQsQ049WkpDQSBPQ0ExLCBPVT1DUkxEaXN0cmlidXRlUG9p
-                bnRzLCBvPXpqY2E/Y2VydGlmaWNhdGVSZXZvY2F0aW9uTGlzdD9iYXNlP29iamVj
-                dGNsYXNzPWNSTERpc3RyaWJ1dGlvblBvaW50MIGiBggrBgEFBQcBAQSBlTCBkjCB
-                jwYIKwYBBQUHMAKGgYJsZGFwOi8vbGRhcC56amNhLmNvbS5jbi9DTj1aSkNBIE9D
-                QTEsQ049WkpDQSBPQ0ExLCBPVT1jQUNlcnRpZmljYXRlcywgbz16amNhP2NBQ2Vy
-                dGlmaWNhdGU/YmFzZT9vYmplY3RDbGFzcz1jZXJ0aWZpY2F0aW9uQXV0aG9yaXR5
-                MB0GA1UdDgQWBBRrAmmtyFNAjIpT7etS7jhxbYVtPzAMBggqgRzPVQGDdQUAA0gA
-                MEUCIQDzF4FgeP/59lyxtTY2tEUr/nSzeEXU5PZheDstRRI1KwIgU4XQ+uKJ/KkR
-                zhHzFb3YluUUuqnPrZy8oQsR7fNSnzU=
-                -----END CERTIFICATE-----""";
-        Certificate encCert = PemUtil.pem2Cert(encCertPem);
-        PublicKey encPublicKey = CertUtil.extraPublicKey(encCert);
-
-        String sigCertPem= """
-                -----BEGIN CERTIFICATE-----
-                MIIDbjCCAxKgAwIBAgIIdMEAqwRXlU8wDAYIKoEcz1UBg3UFADBSMQswCQYDVQQG
-                EwJDTjEvMC0GA1UECgwmWmhlamlhbmcgRGlnaXRhbCBDZXJ0aWZpY2F0ZSBBdXRo
-                b3JpdHkxEjAQBgNVBAMMCVpKQ0EgT0NBMTAeFw0yNDA4MTMxNjAwMDBaFw0yNTA4
-                MTQxNTU5NTlaMCQxCzAJBgNVBAYTAkNOMRUwEwYDVQQDDAwxMC41NC4zOC4yMDQw
-                WTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAARvdqOfmBh5gomhAB62UIfZNkT8t/G8
-                BQSwfIe4dnRb9Sf1J4maRySCkLrvHD808c7bbaSpj10datZX47cdr02no4IB/DCC
-                AfgwDAYDVR0TBAUwAwEBADATBgNVHSUEDDAKBggrBgEFBQcDATAOBgNVHQ8BAf8E
-                BAMCAMAwEQYJYIZIAYb4QgEBBAQDAgBAMBcGA1UdEQQQMA6CDDEwLjU0LjM4LjIw
-                NDAfBgNVHSMEGDAWgBSn07EkkCAdPbRU7ks3KFKRrixqIjCBsQYDVR0fBIGpMIGm
-                MIGjoIGgoIGdhoGabGRhcDovL2xkYXAuempjYS5jb20uY24vQ049WkpDQSBPQ0Ex
-                Z3JvdXA3Mjg0LENOPVpKQ0EgT0NBMSwgT1U9Q1JMRGlzdHJpYnV0ZVBvaW50cywg
-                bz16amNhP2NlcnRpZmljYXRlUmV2b2NhdGlvbkxpc3Q/YmFzZT9vYmplY3RjbGFz
-                cz1jUkxEaXN0cmlidXRpb25Qb2ludDCBogYIKwYBBQUHAQEEgZUwgZIwgY8GCCsG
-                AQUFBzAChoGCbGRhcDovL2xkYXAuempjYS5jb20uY24vQ049WkpDQSBPQ0ExLENO
-                PVpKQ0EgT0NBMSwgT1U9Y0FDZXJ0aWZpY2F0ZXMsIG89empjYT9jQUNlcnRpZmlj
-                YXRlP2Jhc2U/b2JqZWN0Q2xhc3M9Y2VydGlmaWNhdGlvbkF1dGhvcml0eTAdBgNV
-                HQ4EFgQUTCb4AJgPldn/xx7aDKvYY3la98MwDAYIKoEcz1UBg3UFAANIADBFAiBJ
-                hkDhyCA94W1p5AsNLwLA2Yv8LZne6G5CO6YRPkG7AgIhANep2AuNZ9PSEeW5VCOS
-                Vx/kaxE2Y8rjeBJaIND+uMRP
-                -----END CERTIFICATE-----""";
-        Certificate sigCert = PemUtil.pem2Cert(sigCertPem);
-        PublicKey sigPublicKey = CertUtil.extraPublicKey(sigCert);
-
-        String envelop = EnvelopedUtil.assembleFront((BCECPrivateKey) encPrivateKey, (BCECPublicKey) encPublicKey, (BCECPublicKey) sigPublicKey);
-        try (FileWriter assembleEnvelop = new FileWriter(STORE_PATH + "assembleEnvelop.pem")) {
-            assembleEnvelop.write(envelop);
         }
     }
 

@@ -41,6 +41,9 @@ public class KeyTest {
         }
     }
 
+    /**
+     * 是否为非降级模式秘钥
+     */
     @Test
     void isIndexModePrivateKey() {
         String key = """

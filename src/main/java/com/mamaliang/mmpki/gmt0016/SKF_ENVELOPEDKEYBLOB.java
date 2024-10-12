@@ -4,7 +4,9 @@ import com.sun.jna.Structure;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -106,4 +108,12 @@ public class SKF_ENVELOPEDKEYBLOB extends Structure {
         return all.array();
     }
 
+    public static String toBase64String(SKF_ENVELOPEDKEYBLOB envelopedKeyBlob) {
+        return new String(Base64.getEncoder().encode(encode(envelopedKeyBlob)), StandardCharsets.UTF_8);
+    }
+
+    public static SKF_ENVELOPEDKEYBLOB fromBase64String(String base64String) {
+        byte[] eccEnvelopedKeyBlobBytes = Base64.getDecoder().decode(base64String.getBytes(StandardCharsets.UTF_8));
+        return SKF_ENVELOPEDKEYBLOB.decode(eccEnvelopedKeyBlobBytes);
+    }
 }

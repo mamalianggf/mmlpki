@@ -152,7 +152,7 @@ public class GM3000Test {
             Certificate sm2SIG = CertUtil.caIssueCert(false, true, false, siteName, bcecPublicKey, notBefore, notAfter, caName, CertUtil.generateSANExt(Collections.singletonList(cn)), caKeyPair.getPublic(), caKeyPair.getPrivate(), SM2.SIGNATURE_SM3_WITH_SM2);
             skf.importCertificate(hContainer, true, sm2SIG.getEncoded());
             KeyPair encKeyPair = SM2.generateKeyPair();
-            SKF_ENVELOPEDKEYBLOB skfEnvelopedkeyblob = EnvelopedUtil.assembleBackend((BCECPrivateKey) encKeyPair.getPrivate(), (BCECPublicKey) encKeyPair.getPublic(), bcecPublicKey);
+            SKF_ENVELOPEDKEYBLOB skfEnvelopedkeyblob = EnvelopedUtil.assemble((BCECPrivateKey) encKeyPair.getPrivate(), (BCECPublicKey) encKeyPair.getPublic(), bcecPublicKey);
             skf.ImportECCKeyPair(hContainer, skfEnvelopedkeyblob);
             Certificate sm2ENC = CertUtil.caIssueCert(false, false, true, siteName, encKeyPair.getPublic(), notBefore, notAfter, caName, CertUtil.generateSANExt(Collections.singletonList(cn)), caKeyPair.getPublic(), caKeyPair.getPrivate(), SM2.SIGNATURE_SM3_WITH_SM2);
             skf.importCertificate(hContainer, false, sm2ENC.getEncoded());
@@ -165,7 +165,7 @@ public class GM3000Test {
             throw new RuntimeException(e);
         } finally {
             if (Objects.nonNull(skf)) {
-                if (Objects.nonNull(hApplication)) {
+                if (Objects.nonNull(hContainer)) {
                     skf.closeContainer(hContainer);
                 }
                 if (Objects.nonNull(hApplication)) {
