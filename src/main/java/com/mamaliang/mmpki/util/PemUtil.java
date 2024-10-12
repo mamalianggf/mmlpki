@@ -4,6 +4,7 @@ import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.util.io.pem.PemObject;
@@ -63,12 +64,19 @@ public class PemUtil {
         }
     }
 
-    // 只支持pkcs8私钥类型,可以用以下命令将原始的ec私钥转换成pkcs8私钥类型
-    // openssl pkcs8 -topk8 -inform PEM -outform PEM -in ec_private_key.pem -out pkcs8_private_key.pem -nocrypt
+    // 目前支持pkcs#8、openssl格式
     public static PrivateKey pem2privateKey(String pem) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         try (StringReader stringReader = new StringReader(pem);
              PEMParser pemParser = new PEMParser(stringReader)) {
-            PrivateKeyInfo privateKeyInfo = (PrivateKeyInfo) pemParser.readObject();
+            Object privateKeyObject = pemParser.readObject();
+            PrivateKeyInfo privateKeyInfo;
+            if (privateKeyObject instanceof PrivateKeyInfo) {
+                privateKeyInfo = (PrivateKeyInfo) privateKeyObject;
+            } else if (privateKeyObject instanceof PEMKeyPair pemKeyPair) {
+                privateKeyInfo = pemKeyPair.getPrivateKeyInfo();
+            } else {
+                throw new UnsupportedOperationException("私钥类型目前只支持pkcs#8、openssl格式");
+            }
             String algo = privateKeyInfo.getPrivateKeyAlgorithm().getAlgorithm().getId();
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyInfo.getEncoded());
             KeyFactory keyFactory = KeyFactory.getInstance(algo, new BouncyCastleProvider());
