@@ -48,7 +48,7 @@ public class EnvelopedUtil {
      * @param existEccContainerName 用于SM1
      * @return 加密私钥
      */
-    public static BCECPrivateKey disassemble(SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob, BCECPrivateKey signPrivateKey, String dynamicLibName, String existEccContainerName) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException {
+    public static BCECPrivateKey disassemble(SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob, BCECPrivateKey signPrivateKey, String dynamicLibName, String existEccContainerName) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException, InvalidKeySpecException {
         // 组装非对称密文
         byte[] encryptData = constructEncryptData(eccEnvelopedKeyBlob);
         // 依靠签名私钥解出对称密钥

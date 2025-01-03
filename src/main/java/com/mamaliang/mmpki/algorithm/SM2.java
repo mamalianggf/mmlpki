@@ -1,8 +1,6 @@
 package com.mamaliang.mmpki.algorithm;
 
-import org.bouncycastle.asn1.gm.GMNamedCurves;
 import org.bouncycastle.asn1.gm.GMObjectIdentifiers;
-import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.SM2Engine;
 import org.bouncycastle.crypto.params.ECDomainParameters;
@@ -13,7 +11,7 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
 import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
@@ -45,28 +43,54 @@ public class SM2 {
         return keyPairGenerator.generateKeyPair();
     }
 
-    public static BCECPrivateKey convert2PrivateKey(byte[] d) {
-        X9ECParameters sm2ECParameters = GMNamedCurves.getByName(CURVE_NAME);
-        ECDomainParameters ecDomainParameters = new ECDomainParameters(sm2ECParameters.getCurve(), sm2ECParameters.getG(), sm2ECParameters.getN());
+    /**
+     * Q = d 点乘 G
+     * d  是私钥，一个大整数
+     * G  是椭圆曲线上的生成点
+     * Q  是椭圆曲线上的一个点，即公钥
+     */
+    public static ECPoint calculateQ(byte[] d) {
+        ECParameterSpec sm2p256v1 = ECNamedCurveTable.getParameterSpec(GMObjectIdentifiers.sm2p256v1.getId());
+        BigInteger privateKeyD = new BigInteger(1, d);
+        ECPoint publicKeyQ = sm2p256v1.getG().multiply(privateKeyD);
+        // 确保公钥是非压缩形式,即04开头
+        return publicKeyQ.normalize();
+    }
+
+    /**
+     * 将d转换成私钥对象
+     */
+    public static BCECPrivateKey convert2PrivateKey(byte[] d) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        ECParameterSpec sm2p256v1 = ECNamedCurveTable.getParameterSpec(GMObjectIdentifiers.sm2p256v1.getId());
+        ECDomainParameters ecDomainParameters = new ECDomainParameters(sm2p256v1.getCurve(), sm2p256v1.getG(), sm2p256v1.getN());
         ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(new BigInteger(1, d), ecDomainParameters);
-        return new BCECPrivateKey(ALGORITHM, ecPrivateKeyParameters, BouncyCastleProvider.CONFIGURATION);
+        // 计算公钥
+        ECPoint Q = calculateQ(d);
+        BCECPublicKey publicKey = convert2PublicKey(Q);
+        return new BCECPrivateKey(ALGORITHM, ecPrivateKeyParameters, publicKey, sm2p256v1, BouncyCastleProvider.CONFIGURATION);
+
     }
 
     /**
      * X,Y 32/64位都可以,且都是正数
      */
     public static BCECPublicKey convert2PublicKey(byte[] x, byte[] y) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        ECNamedCurveParameterSpec sm2ECParameters = ECNamedCurveTable.getParameterSpec(CURVE_NAME);
-        ECCurve curve = sm2ECParameters.getCurve();
-        ECPoint point = curve.createPoint(new BigInteger(1, x), new BigInteger(1, y));
-        ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(point, sm2ECParameters);
+        ECParameterSpec sm2p256v1 = ECNamedCurveTable.getParameterSpec(GMObjectIdentifiers.sm2p256v1.getId());
+        ECCurve sm2Curve = sm2p256v1.getCurve();
+        ECPoint Q = sm2Curve.createPoint(new BigInteger(1, x), new BigInteger(1, y));
+        return convert2PublicKey(Q);
+    }
+
+    public static BCECPublicKey convert2PublicKey(ECPoint Q) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        ECParameterSpec sm2p256v1 = ECNamedCurveTable.getParameterSpec(GMObjectIdentifiers.sm2p256v1.getId());
+        ECPublicKeySpec sm2PubKeySpec = new ECPublicKeySpec(Q, sm2p256v1);
         KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM, new BouncyCastleProvider());
-        return (BCECPublicKey) keyFactory.generatePublic(pubKeySpec);
+        return (BCECPublicKey) keyFactory.generatePublic(sm2PubKeySpec);
     }
 
     public static byte[] encrypt(BCECPublicKey publicKey, byte[] plainText) throws InvalidCipherTextException {
-        X9ECParameters sm2ECParameters = GMNamedCurves.getByName(CURVE_NAME);
-        ECDomainParameters ecDomainParameters = new ECDomainParameters(sm2ECParameters.getCurve(), sm2ECParameters.getG(), sm2ECParameters.getN());
+        ECParameterSpec sm2p256v1 = ECNamedCurveTable.getParameterSpec(GMObjectIdentifiers.sm2p256v1.getId());
+        ECDomainParameters ecDomainParameters = new ECDomainParameters(sm2p256v1.getCurve(), sm2p256v1.getG(), sm2p256v1.getN());
         ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(publicKey.getQ(), ecDomainParameters);
         SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C3C2);
         sm2Engine.init(true, new ParametersWithRandom(ecPublicKeyParameters, new SecureRandom()));
@@ -77,8 +101,8 @@ public class SM2 {
         if (encryptData[0] != 0x04) {
             throw new IllegalArgumentException("C1 of cipher may be compressed");
         }
-        X9ECParameters sm2ECParameters = GMNamedCurves.getByName(CURVE_NAME);
-        ECDomainParameters domainParameters = new ECDomainParameters(sm2ECParameters.getCurve(), sm2ECParameters.getG(), sm2ECParameters.getN());
+        ECParameterSpec sm2p256v1 = ECNamedCurveTable.getParameterSpec(GMObjectIdentifiers.sm2p256v1.getId());
+        ECDomainParameters domainParameters = new ECDomainParameters(sm2p256v1.getCurve(), sm2p256v1.getG(), sm2p256v1.getN());
         ECPrivateKeyParameters privateKeyParameters = new ECPrivateKeyParameters(privateKey.getD(), domainParameters);
         SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C3C2);
         sm2Engine.init(false, privateKeyParameters);
