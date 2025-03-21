@@ -1,5 +1,6 @@
 package com.mamaliang.mmpki.nsagTool;
 
+import com.mamaliang.mmpki.algorithm.AlgorithmID;
 import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
 import com.mamaliang.mmpki.gmt0016.SKF_ENVELOPEDKEYBLOB;
 import com.mamaliang.mmpki.util.CertUtil;
@@ -89,6 +90,23 @@ public class EnvelopTest {
         SKF_ENVELOPEDKEYBLOB envelopedKeyBlob = EnvelopedUtil.assemble((BCECPrivateKey) encPrivateKey, (BCECPublicKey) encPublicKey, (BCECPublicKey) sigPublicKey);
         try (FileWriter assembleEnvelop = new FileWriter(STORE_PATH + "assembleEnvelop.pem")) {
             assembleEnvelop.write(SKF_ENVELOPEDKEYBLOB.toBase64String(envelopedKeyBlob));
+        }
+    }
+
+    /**
+     * 信封使用的算法是sm1还是sm4
+     */
+    @Test
+    public void sm1OrSm4() {
+        String envelop = "AQAAAAEBAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABNGgCFVu98lH4/bVNOes0IbcSeGfjUfjFxLD8JQP9eSAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFI+CsqAtD76lH8R2lAWZvg9JrmUdgWm+zcT9FhLMddIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADaGvceHcOrzX/wASEss0vJe09JhMm89kwXIOO1PmxRSQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYaUUA15CYK7MXL2N4027BwnGOdUVTsL+a+m+XBWzTYMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKniU7zyTNiXWMDusvd/ezaIo6heeH4P8C9W+rNvxPdIAaMMO+fiFPdqLyRD8wBbVS3qHuWEfPNmZJ7rkK1TQ84QAAAAetS1Od6/Rdr0mQfQ9WWILA==";
+        SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob = SKF_ENVELOPEDKEYBLOB.fromBase64String(envelop);
+        int ulSymmAlgId = eccEnvelopedKeyBlob.ulSymmAlgId;
+        if (ulSymmAlgId == AlgorithmID.SGD_SM1_ECB) {
+            System.out.println("SM1 ECB");
+        } else if (ulSymmAlgId == AlgorithmID.SGD_SM4_ECB) {
+            System.out.println("SM4 ECB");
+        } else {
+            System.out.println("unknown algorithm");
         }
     }
 
