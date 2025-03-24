@@ -2,7 +2,6 @@ package com.mamaliang.mmpki.cert.service.impl;
 
 import com.mamaliang.mmpki.algorithm.SM2;
 import com.mamaliang.mmpki.cert.service.AbstractCertService;
-import org.springframework.stereotype.Service;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
