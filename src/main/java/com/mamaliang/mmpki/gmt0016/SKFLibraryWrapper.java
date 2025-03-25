@@ -21,7 +21,7 @@ public class SKFLibraryWrapper {
 
     private final SKFLibrary uKey;
 
-    public SKFLibraryWrapper(String dynamicLibName) {
+    SKFLibraryWrapper(String dynamicLibName) {
         this.uKey = Native.load(dynamicLibName, SKFLibrary.class);
     }
 

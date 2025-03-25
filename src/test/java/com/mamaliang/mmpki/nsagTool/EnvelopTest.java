@@ -5,6 +5,7 @@ import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
 import com.mamaliang.mmpki.gmt0016.SKF_ENVELOPEDKEYBLOB;
 import com.mamaliang.mmpki.util.CertUtil;
 import com.mamaliang.mmpki.util.PemUtil;
+import com.mamaliang.mmpki.util.PropertiesUtil;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
@@ -22,7 +23,7 @@ import java.security.PublicKey;
 @Disabled
 public class EnvelopTest {
 
-    private static final String STORE_PATH = "/Users/mamaliang/Workspace/mmlpki/db/";
+    private static final String STORE_PATH = PropertiesUtil.getString("cert.store.path");
 
     /**
      * 已知加密证书私钥、加密证书、签名证书，生成0016信封
@@ -134,7 +135,7 @@ public class EnvelopTest {
         // 解密出加密证书的私钥
         SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob = SKF_ENVELOPEDKEYBLOB.fromBase64String(envelop);
         PrivateKey sigPrivateKey = PemUtil.pem2privateKey(sigPrivateKeyPem);
-        BCECPrivateKey encPrivateKey = EnvelopedUtil.disassemble(eccEnvelopedKeyBlob, (BCECPrivateKey) sigPrivateKey, dynamicLibName, existEccContainerName);
+        BCECPrivateKey encPrivateKey = EnvelopedUtil.disassemble(eccEnvelopedKeyBlob, (BCECPrivateKey) sigPrivateKey);
 
         // 重新组装，重新组装时用的SM4
         Certificate encCert = PemUtil.pem2Cert(encCertPem);

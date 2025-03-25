@@ -21,6 +21,7 @@ dependencies {
     implementation 'org.bouncycastle:bcprov-jdk18on:1.76'
     implementation 'net.java.dev.jna:jna:5.14.0'
     implementation 'org.slf4j:slf4j-api:2.0.17'
+    implementation 'org.apache.commons:commons-configuration2:2.11.0'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     compileOnly 'org.projectlombok:lombok:1.18.30'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.1'

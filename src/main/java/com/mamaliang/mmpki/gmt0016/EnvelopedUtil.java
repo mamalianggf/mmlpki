@@ -42,13 +42,11 @@ public class EnvelopedUtil {
     /**
      * 解信封:从信封中提取加密私钥
      *
-     * @param eccEnvelopedKeyBlob   信封
-     * @param signPrivateKey        签名私钥
-     * @param dynamicLibName        用于SM1,当使用
-     * @param existEccContainerName 用于SM1
+     * @param eccEnvelopedKeyBlob 信封
+     * @param signPrivateKey      签名私钥
      * @return 加密私钥
      */
-    public static BCECPrivateKey disassemble(SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob, BCECPrivateKey signPrivateKey, String dynamicLibName, String existEccContainerName) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException, InvalidKeySpecException {
+    public static BCECPrivateKey disassemble(SKF_ENVELOPEDKEYBLOB eccEnvelopedKeyBlob, BCECPrivateKey signPrivateKey) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InvalidCipherTextException, InvalidKeySpecException {
         // 组装非对称密文
         byte[] encryptData = constructEncryptData(eccEnvelopedKeyBlob);
         // 依靠签名私钥解出对称密钥
@@ -63,7 +61,7 @@ public class EnvelopedUtil {
         int ulSymmAlgId = eccEnvelopedKeyBlob.ulSymmAlgId;
         if (AlgorithmID.SGD_SM1_ECB == ulSymmAlgId) {
             // SM1没有软件实现，需要使用硬件解密
-            encPrivateKeyBytes = SM1.ecbDecrypt(dynamicLibName, existEccContainerName, symmKey, tempCbEncryptedPrivKey);
+            encPrivateKeyBytes = SM1.ecbDecrypt(symmKey, tempCbEncryptedPrivKey);
         } else if (AlgorithmID.SGD_SM4_ECB == ulSymmAlgId) {
             // 依靠SM4对称密码解出加密私钥
             SecretKey key = new SecretKeySpec(symmKey, "SM4");

@@ -2,6 +2,7 @@ package com.mamaliang.mmpki.nsagTool;
 
 import com.mamaliang.mmpki.algorithm.SM2;
 import com.mamaliang.mmpki.util.PemUtil;
+import com.mamaliang.mmpki.util.PropertiesUtil;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.openssl.PEMParser;
@@ -26,7 +27,7 @@ import java.security.NoSuchAlgorithmException;
 @Disabled
 public class KeyTest {
 
-    private static final String STORE_PATH = "/Users/mamaliang/Workspace/mmlpki/db/";
+    private static final String STORE_PATH = PropertiesUtil.getString("cert.store.path");
 
     @Test
     void generateSm2Key() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException {

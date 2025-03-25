@@ -128,7 +128,7 @@ public class EnvelopTest {
         DoubleCertWithEnvelop doubleCertWithEnvelop = new SM2CertServiceImpl().caIssueDoubleCertWithEnvelop(cvo);
         // 从信封解出来的私钥和证书中的公钥的是否为一对
         BCECPublicKey encPublic = (BCECPublicKey) CertUtil.extraPublicKey(PemUtil.pem2Cert(doubleCertWithEnvelop.encCert()));
-        BCECPrivateKey encPrivate = EnvelopedUtil.disassemble(SKF_ENVELOPEDKEYBLOB.fromBase64String(doubleCertWithEnvelop.envelop()), (BCECPrivateKey) PemUtil.pem2privateKey(csrWithPrivateKey.privateKey()), null, null);
+        BCECPrivateKey encPrivate = EnvelopedUtil.disassemble(SKF_ENVELOPEDKEYBLOB.fromBase64String(doubleCertWithEnvelop.envelop()), (BCECPrivateKey) PemUtil.pem2privateKey(csrWithPrivateKey.privateKey()));
         String plainText = "hello world";
         byte[] encrypt = SM2.encrypt(encPublic, plainText.getBytes(StandardCharsets.UTF_8));
         byte[] decrypt = SM2.decrypt(encPrivate, encrypt);

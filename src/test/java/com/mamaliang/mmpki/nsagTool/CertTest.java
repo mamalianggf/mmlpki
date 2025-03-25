@@ -7,6 +7,7 @@ import com.mamaliang.mmpki.cert.service.impl.ECCCertServiceImpl;
 import com.mamaliang.mmpki.cert.service.impl.RSACertServiceImpl;
 import com.mamaliang.mmpki.cert.service.impl.SM2CertServiceImpl;
 import com.mamaliang.mmpki.model.CaWithTwoSite;
+import com.mamaliang.mmpki.util.PropertiesUtil;
 import com.mamaliang.mmpki.util.X500NameUtil;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.junit.jupiter.api.Disabled;
@@ -24,7 +25,7 @@ import java.util.Date;
 @Disabled
 public class CertTest {
 
-    private static final String STORE_PATH = "/Users/mamaliang/Workspace/mmlpki/db/";
+    private static final String STORE_PATH = PropertiesUtil.getString("cert.store.path");
 
     @Test
     void sm2SelfIssueSingleCert() throws IOException {

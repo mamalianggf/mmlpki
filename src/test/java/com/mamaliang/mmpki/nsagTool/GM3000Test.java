@@ -1,12 +1,10 @@
 package com.mamaliang.mmpki.nsagTool;
 
 import com.mamaliang.mmpki.algorithm.SM2;
-import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
-import com.mamaliang.mmpki.gmt0016.SKFLibraryWrapper;
-import com.mamaliang.mmpki.gmt0016.SKF_ENVELOPEDKEYBLOB;
-import com.mamaliang.mmpki.gmt0016.Struct_ECCPUBLICKEYBLOB;
+import com.mamaliang.mmpki.gmt0016.*;
 import com.mamaliang.mmpki.util.CertUtil;
 import com.mamaliang.mmpki.util.PemUtil;
+import com.mamaliang.mmpki.util.PropertiesUtil;
 import com.mamaliang.mmpki.util.X500NameUtil;
 import com.sun.jna.Pointer;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -32,98 +30,22 @@ import java.util.Objects;
 @Disabled
 public class GM3000Test {
 
-    private static final String STORE_PATH = "/Users/mamaliang/Workspace/mmlpki/db/";
-    private static final String DYNAMIC_LIB_NAME = "gm3000.1.0";
-    private static final String USER_PIN = "12345678";
+    private static final String STORE_PATH = PropertiesUtil.getString("cert.store.path");
+    private static final String DYNAMIC_LIB_NAME = PropertiesUtil.getString("usbKey.dynamicLib.name");
+    private static final String USER_PIN = PropertiesUtil.getString("usbKey.user.pin");
 
     @Test
     void operate() {
         String containerName = "gaof";
         String cn = "gaof";
         // 展示
-        listContainer();
+        List<List<String>> containersPath = SKFUtil.listContainer();
+
         // 删除
 //        deleteContainer(containerName);
         // 1.创建容器 2.生成签名密钥对 3.密钥不落地形式导入
 //        createContainer(containerName);
 //        makeContainer(containerName, cn);
-    }
-
-    void listContainer() {
-        SKFLibraryWrapper skf = null;
-        Pointer hDev = null;
-        Pointer hApplication = null;
-        try {
-            skf = new SKFLibraryWrapper(DYNAMIC_LIB_NAME);
-            List<String> devNames = skf.enumDev();
-            hDev = skf.connectDev(devNames.get(0));
-            List<String> applicationNames = skf.enumApplication(hDev);
-            hApplication = skf.openApplication(hDev, applicationNames.get(0));
-            skf.enumContainer(hApplication);
-        } finally {
-            if (Objects.nonNull(skf)) {
-                if (Objects.nonNull(hApplication)) {
-                    skf.closeApplication(hApplication);
-                }
-                if (Objects.nonNull(hDev)) {
-                    skf.disConnectDev(hDev);
-                }
-            }
-        }
-    }
-
-    void deleteContainer(String containerName) {
-        SKFLibraryWrapper skf = null;
-        Pointer hDev = null;
-        Pointer hApplication = null;
-        try {
-            skf = new SKFLibraryWrapper(DYNAMIC_LIB_NAME);
-            List<String> devNames = skf.enumDev();
-            hDev = skf.connectDev(devNames.get(0));
-            List<String> applicationNames = skf.enumApplication(hDev);
-            hApplication = skf.openApplication(hDev, applicationNames.get(0));
-            skf.enumContainer(hApplication);
-            // 辉哥的key,目前只知道用户pin码是12345678,管理员pin码和设备认证码都不知道
-            skf.verifyPIN(hApplication, 1, USER_PIN);
-            skf.deleteContainer(hApplication, containerName);
-            skf.enumContainer(hApplication);
-        } finally {
-            if (Objects.nonNull(skf)) {
-                if (Objects.nonNull(hApplication)) {
-                    skf.closeApplication(hApplication);
-                }
-                if (Objects.nonNull(hDev)) {
-                    skf.disConnectDev(hDev);
-                }
-            }
-        }
-    }
-
-    void createContainer(String containerName) {
-        SKFLibraryWrapper skf = null;
-        Pointer hDev = null;
-        Pointer hApplication = null;
-        try {
-            skf = new SKFLibraryWrapper(DYNAMIC_LIB_NAME);
-            List<String> devNames = skf.enumDev();
-            hDev = skf.connectDev(devNames.get(0));
-            List<String> applicationNames = skf.enumApplication(hDev);
-            hApplication = skf.openApplication(hDev, applicationNames.get(0));
-            skf.enumContainer(hApplication);
-            // 辉哥的key,目前只知道用户pin码是12345678,管理员pin码和设备认证码都不知道
-            skf.verifyPIN(hApplication, 1, USER_PIN);
-            skf.createContainer(hApplication, containerName);
-            skf.enumContainer(hApplication);
-        } finally {
-            if (Objects.nonNull(skf)) {
-                if (Objects.nonNull(hApplication)) {
-                    skf.closeApplication(hApplication);
-                }
-                if (Objects.nonNull(hDev)) {
-                    skf.disConnectDev(hDev);
-                }
-            }
-        }
     }
 
     void makeContainer(String containerName, String cn) {

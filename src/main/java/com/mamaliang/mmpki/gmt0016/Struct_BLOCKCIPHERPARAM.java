@@ -13,6 +13,7 @@ public class Struct_BLOCKCIPHERPARAM extends Structure {
 
     public byte[] IVS = new byte[32];
     public int IVLen;
+    // 填充方式，0 表示不填充，1 表示按照PKCS#5 方式进行填充
     public int PaddingType;
     public int FeedBitLen;
 
