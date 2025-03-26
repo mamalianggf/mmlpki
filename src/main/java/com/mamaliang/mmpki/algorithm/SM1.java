@@ -1,6 +1,5 @@
 package com.mamaliang.mmpki.algorithm;
 
-import com.mamaliang.mmpki.gmt0016.SKFLibraryWrapper;
 import com.mamaliang.mmpki.gmt0016.SKFUtil;
 import com.mamaliang.mmpki.gmt0016.Struct_ECCCIPHERBLOB;
 import com.mamaliang.mmpki.gmt0016.Struct_ECCPUBLICKEYBLOB;
@@ -42,16 +41,15 @@ public class SM1 {
      */
     public static byte[] ecbDecrypt(byte[] key, byte[] encryptData) {
         try {
-            SKFLibraryWrapper skf = SKFUtil.getSkf();
             // todo 如果新建的容器大概率是没有加密密钥对的
-            Struct_ECCPUBLICKEYBLOB structEccPublicKeyBlob = skf.exportPublicKey(containerPointer, false);
+            Struct_ECCPUBLICKEYBLOB structEccPublicKeyBlob = SKFUtil.exportPublicKey(containerPointer, false);
             byte[] xCoordinate = structEccPublicKeyBlob.XCoordinate;
             byte[] yCoordinate = structEccPublicKeyBlob.YCoordinate;
             BCECPublicKey encPublicKey = SM2.convert2PublicKey(xCoordinate, yCoordinate);
             byte[] encryptedSessionKey = SM2.encrypt(encPublicKey, key);
-            Pointer hKey = skf.importSessionKey(containerPointer, AlgorithmID.SGD_SM1_ECB, Struct_ECCCIPHERBLOB.decode(encryptedSessionKey));
+            Pointer hKey = SKFUtil.importSessionKey(containerPointer, AlgorithmID.SGD_SM1_ECB, Struct_ECCCIPHERBLOB.decode(encryptedSessionKey));
             // todo param不清楚如何定义
-            return skf.decrypt(hKey, null, encryptData);
+            return SKFUtil.decrypt(hKey, null, encryptData);
         } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidCipherTextException e) {
             throw new RuntimeException(e);
         }

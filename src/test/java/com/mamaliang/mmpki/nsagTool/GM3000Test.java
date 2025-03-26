@@ -1,7 +1,10 @@
 package com.mamaliang.mmpki.nsagTool;
 
 import com.mamaliang.mmpki.algorithm.SM2;
-import com.mamaliang.mmpki.gmt0016.*;
+import com.mamaliang.mmpki.gmt0016.EnvelopedUtil;
+import com.mamaliang.mmpki.gmt0016.SKFUtil;
+import com.mamaliang.mmpki.gmt0016.SKF_ENVELOPEDKEYBLOB;
+import com.mamaliang.mmpki.gmt0016.Struct_ECCPUBLICKEYBLOB;
 import com.mamaliang.mmpki.util.CertUtil;
 import com.mamaliang.mmpki.util.PemUtil;
 import com.mamaliang.mmpki.util.PropertiesUtil;
@@ -27,7 +30,7 @@ import java.util.Objects;
  * @author gaof
  * @date 2024/1/5
  */
-@Disabled
+//@Disabled
 public class GM3000Test {
 
     private static final String STORE_PATH = PropertiesUtil.getString("cert.store.path");
@@ -36,66 +39,57 @@ public class GM3000Test {
 
     @Test
     void operate() {
-        String containerName = "gaof";
-        String cn = "gaof";
         // 展示
         List<List<String>> containersPath = SKFUtil.listContainer();
+        containersPath.forEach(System.out::println);
 
         // 删除
-//        deleteContainer(containerName);
+//        SKFUtil.deleteContainer("CEC45107E789B945960BFF6BB31BCB7", "GM3000RSA", "gaof");
         // 1.创建容器 2.生成签名密钥对 3.密钥不落地形式导入
-//        createContainer(containerName);
-//        makeContainer(containerName, cn);
+//        SKFUtil.createContainer("devName", "applicationName", "containerName");
+        // makeContainer(containerName, cn);
     }
 
-    void makeContainer(String containerName, String cn) {
-        SKFLibraryWrapper skf = null;
-        Pointer hDev = null;
-        Pointer hApplication = null;
+    void generateAndImportCertsWithEnvelop(String devName, String applicationName, String containerName) {
         Pointer hContainer = null;
         try {
-            skf = new SKFLibraryWrapper(DYNAMIC_LIB_NAME);
-            List<String> devNames = skf.enumDev();
-            hDev = skf.connectDev(devNames.get(0));
-            List<String> applicationNames = skf.enumApplication(hDev);
-            hApplication = skf.openApplication(hDev, applicationNames.get(0));
-            hContainer = skf.openContainer(hApplication, containerName);
-            skf.verifyPIN(hApplication, 1, USER_PIN);
-            Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = skf.genECCKeyPair(hContainer);
+            // 生成签名密钥对
+            hContainer = SKFUtil.openContainer(devName, applicationName, containerName);
+            Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = SKFUtil.genECCKeyPair(hContainer);
+            // 签名公钥
             BCECPublicKey bcecPublicKey = SM2.convert2PublicKey(eccPublicKeyBlob.XCoordinate, eccPublicKeyBlob.YCoordinate);
-            // ca cert
+
+            // 临时ca，用于签发签名证书和加密证书
             X500Name caName = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", "SM2ROOT");
             Date notBefore = new Date();
             Date notAfter = new Date(notBefore.getTime() + 10 * 360 * 24 * 60 * 60 * 1000L); // 10年
             KeyPair caKeyPair = SM2.generateKeyPair();
             Certificate sm2ROOT = CertUtil.selfIssueCert(true, false, false, caName, notBefore, notAfter, Collections.singletonList("SM2ROOT"), caKeyPair, SM2.SIGNATURE_SM3_WITH_SM2);
-            // sig cert and enc key pair and enc cert
-            X500Name siteName = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", cn);
-            Certificate sm2SIG = CertUtil.caIssueCert(false, true, false, siteName, bcecPublicKey, notBefore, notAfter, caName, CertUtil.generateSANExt(Collections.singletonList(cn)), caKeyPair.getPublic(), caKeyPair.getPrivate(), SM2.SIGNATURE_SM3_WITH_SM2);
-            skf.importCertificate(hContainer, true, sm2SIG.getEncoded());
-            KeyPair encKeyPair = SM2.generateKeyPair();
-            SKF_ENVELOPEDKEYBLOB skfEnvelopedkeyblob = EnvelopedUtil.assemble((BCECPrivateKey) encKeyPair.getPrivate(), (BCECPublicKey) encKeyPair.getPublic(), bcecPublicKey);
-            skf.ImportECCKeyPair(hContainer, skfEnvelopedkeyblob);
-            Certificate sm2ENC = CertUtil.caIssueCert(false, false, true, siteName, encKeyPair.getPublic(), notBefore, notAfter, caName, CertUtil.generateSANExt(Collections.singletonList(cn)), caKeyPair.getPublic(), caKeyPair.getPrivate(), SM2.SIGNATURE_SM3_WITH_SM2);
-            skf.importCertificate(hContainer, false, sm2ENC.getEncoded());
             try (FileWriter caCertFile = new FileWriter(STORE_PATH + "ca.pem");
                  FileWriter caKeyFile = new FileWriter(STORE_PATH + "ca.key")) {
                 caCertFile.write(PemUtil.cert2pem(sm2ROOT));
                 caKeyFile.write(PemUtil.privateKey2pem(caKeyPair.getPrivate()));
             }
+
+            String commonName = "gaof";
+            // 临时ca签发签名证书
+            X500Name siteName = X500NameUtil.generateX500Name("CN", "SH", "SH", "FUTURE", "FUTURE", commonName);
+            Certificate sm2SIG = CertUtil.caIssueCert(false, true, false, siteName, bcecPublicKey, notBefore, notAfter, caName, CertUtil.generateSANExt(Collections.singletonList(commonName)), caKeyPair.getPublic(), caKeyPair.getPrivate(), SM2.SIGNATURE_SM3_WITH_SM2);
+            // 生成加密密钥对
+            KeyPair encKeyPair = SM2.generateKeyPair();
+            // 将加密私钥封装成信封
+            SKF_ENVELOPEDKEYBLOB envelop = EnvelopedUtil.assemble((BCECPrivateKey) encKeyPair.getPrivate(), (BCECPublicKey) encKeyPair.getPublic(), bcecPublicKey);
+            // 临时ca签发签名证书
+            Certificate sm2ENC = CertUtil.caIssueCert(false, false, true, siteName, encKeyPair.getPublic(), notBefore, notAfter, caName, CertUtil.generateSANExt(Collections.singletonList(commonName)), caKeyPair.getPublic(), caKeyPair.getPrivate(), SM2.SIGNATURE_SM3_WITH_SM2);
+
+            // 导入签名证书、信封、加密证书
+            SKFUtil.importCertsWithEnvelop(devName, applicationName, containerName, sm2SIG, envelop, sm2ENC);
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
-            if (Objects.nonNull(skf)) {
-                if (Objects.nonNull(hContainer)) {
-                    skf.closeContainer(hContainer);
-                }
-                if (Objects.nonNull(hApplication)) {
-                    skf.closeApplication(hApplication);
-                }
-                if (Objects.nonNull(hDev)) {
-                    skf.disConnectDev(hDev);
-                }
+            if (Objects.nonNull(hContainer)) {
+                SKFUtil.closeContainer(hContainer);
             }
         }
     }
