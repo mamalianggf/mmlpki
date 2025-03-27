@@ -20,7 +20,9 @@ import java.security.spec.InvalidKeySpecException;
 
 public class SM1 {
 
-    private static final Pointer containerPointer;
+    private static final String devName;
+    private static final String applicationName;
+    private static final String containerName;
 
     static {
         // 检查usbKey种是否存在对应的容器
@@ -29,7 +31,9 @@ public class SM1 {
         if (SKFUtil.isExistContainer(pathArray[0], pathArray[1], pathArray[2])) {
             throw new RuntimeException("usbKey.sm1.container.path配置错误");
         }
-        containerPointer = SKFUtil.openContainer(pathArray[0], pathArray[1], pathArray[2]);
+        devName = pathArray[0];
+        applicationName = pathArray[1];
+        containerName = pathArray[2];
     }
 
     /**
@@ -41,13 +45,12 @@ public class SM1 {
      */
     public static byte[] ecbDecrypt(byte[] key, byte[] encryptData) {
         try {
-            // todo 如果新建的容器大概率是没有加密密钥对的
-            Struct_ECCPUBLICKEYBLOB structEccPublicKeyBlob = SKFUtil.exportPublicKey(containerPointer, false);
+            Struct_ECCPUBLICKEYBLOB structEccPublicKeyBlob = SKFUtil.exportPublicKey(devName, applicationName, containerName, false);
             byte[] xCoordinate = structEccPublicKeyBlob.XCoordinate;
             byte[] yCoordinate = structEccPublicKeyBlob.YCoordinate;
             BCECPublicKey encPublicKey = SM2.convert2PublicKey(xCoordinate, yCoordinate);
             byte[] encryptedSessionKey = SM2.encrypt(encPublicKey, key);
-            Pointer hKey = SKFUtil.importSessionKey(containerPointer, AlgorithmID.SGD_SM1_ECB, Struct_ECCCIPHERBLOB.decode(encryptedSessionKey));
+            Pointer hKey = SKFUtil.importSessionKey(devName, applicationName, containerName, AlgorithmID.SGD_SM1_ECB, Struct_ECCCIPHERBLOB.decode(encryptedSessionKey));
             // todo param不清楚如何定义
             return SKFUtil.decrypt(hKey, null, encryptData);
         } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidCipherTextException e) {

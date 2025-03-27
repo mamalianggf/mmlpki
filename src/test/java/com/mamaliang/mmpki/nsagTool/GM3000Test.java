@@ -9,7 +9,6 @@ import com.mamaliang.mmpki.util.CertUtil;
 import com.mamaliang.mmpki.util.PemUtil;
 import com.mamaliang.mmpki.util.PropertiesUtil;
 import com.mamaliang.mmpki.util.X500NameUtil;
-import com.sun.jna.Pointer;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
@@ -22,7 +21,6 @@ import java.security.KeyPair;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * 需连接usbkey
@@ -30,7 +28,7 @@ import java.util.Objects;
  * @author gaof
  * @date 2024/1/5
  */
-//@Disabled
+@Disabled
 public class GM3000Test {
 
     private static final String STORE_PATH = PropertiesUtil.getString("cert.store.path");
@@ -38,24 +36,35 @@ public class GM3000Test {
     private static final String USER_PIN = PropertiesUtil.getString("usbKey.user.pin");
 
     @Test
-    void operate() {
+    void list() {
         // 展示
         List<List<String>> containersPath = SKFUtil.listContainer();
         containersPath.forEach(System.out::println);
-
-        // 删除
-//        SKFUtil.deleteContainer("CEC45107E789B945960BFF6BB31BCB7", "GM3000RSA", "gaof");
-        // 1.创建容器 2.生成签名密钥对 3.密钥不落地形式导入
-//        SKFUtil.createContainer("devName", "applicationName", "containerName");
-        // makeContainer(containerName, cn);
     }
 
+    @Test
+    void delete() {
+        // 删除
+        SKFUtil.deleteContainer("CEC45107E789B945960BFF6BB31BCB7", "GM3000RSA", "test");
+    }
+
+    @Test
+    void createAndGenerateAndImport() {
+        // 1.创建容器 2.生成签名密钥对 3.密钥不落地形式导入
+        SKFUtil.createContainer("CEC45107E789B945960BFF6BB31BCB7", "GM3000RSA", "test");
+        generateAndImportCertsWithEnvelop("CEC45107E789B945960BFF6BB31BCB7", "GM3000RSA", "test");
+    }
+
+    @Test
+    void sm1() {
+
+    }
+
+
     void generateAndImportCertsWithEnvelop(String devName, String applicationName, String containerName) {
-        Pointer hContainer = null;
         try {
             // 生成签名密钥对
-            hContainer = SKFUtil.openContainer(devName, applicationName, containerName);
-            Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = SKFUtil.genECCKeyPair(hContainer);
+            Struct_ECCPUBLICKEYBLOB eccPublicKeyBlob = SKFUtil.genECCKeyPair(devName, applicationName, containerName);
             // 签名公钥
             BCECPublicKey bcecPublicKey = SM2.convert2PublicKey(eccPublicKeyBlob.XCoordinate, eccPublicKeyBlob.YCoordinate);
 
@@ -84,13 +93,8 @@ public class GM3000Test {
 
             // 导入签名证书、信封、加密证书
             SKFUtil.importCertsWithEnvelop(devName, applicationName, containerName, sm2SIG, envelop, sm2ENC);
-
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            if (Objects.nonNull(hContainer)) {
-                SKFUtil.closeContainer(hContainer);
-            }
         }
     }
 

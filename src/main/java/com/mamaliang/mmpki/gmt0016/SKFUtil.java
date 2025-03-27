@@ -11,6 +11,8 @@ import org.bouncycastle.asn1.x509.Certificate;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 @Slf4j
 public class SKFUtil {
@@ -22,21 +24,14 @@ public class SKFUtil {
         uKey = Native.load(PropertiesUtil.getString("usbKey.dynamicLib.name"), SKFLibrary.class);
     }
 
-    public static boolean isExistContainer(String devName, String applicationName, String containerName) {
+    private static <T> T openApplicationAndOperate(String devName, String applicationName, Function<Pointer, T> applicationFunc) {
         Pointer hDev = null;
         Pointer hApplication = null;
-        Pointer hContainer = null;
         try {
             hDev = connectDev(devName);
             hApplication = openApplication(hDev, applicationName);
-            hContainer = openContainer(hApplication, containerName);
-            return true;
-        } catch (Exception e) {
-            return false;
+            return applicationFunc.apply(hApplication);
         } finally {
-            if (Objects.nonNull(hContainer)) {
-                closeContainer(hContainer);
-            }
             if (Objects.nonNull(hApplication)) {
                 closeApplication(hApplication);
             }
@@ -46,21 +41,27 @@ public class SKFUtil {
         }
     }
 
-    public static Pointer openContainer(String devName, String applicationName, String containerName) {
-        Pointer hDev = null;
-        Pointer hApplication = null;
-        try {
-            hDev = connectDev(devName);
-            hApplication = openApplication(hDev, applicationName);
-            return openContainer(hApplication, containerName);
-        } finally {
-            if (Objects.nonNull(hApplication)) {
-                closeApplication(hApplication);
+    private static <T> T openContainerAndOperate(String devName, String applicationName, String containerName, BiFunction<Pointer, Pointer, T> containerFunc) {
+        Function<Pointer, T> applicationFunc = (hApplication) -> {
+            Pointer hContainer = null;
+            try {
+                hContainer = openContainer(hApplication, containerName);
+                return containerFunc.apply(hApplication, hContainer);
+            } finally {
+                if (Objects.nonNull(hContainer)) {
+                    closeContainer(hContainer);
+                }
             }
-            if (Objects.nonNull(hDev)) {
-                disConnectDev(hDev);
-            }
-        }
+        };
+        return openApplicationAndOperate(devName, applicationName, applicationFunc);
+    }
+
+    public static boolean isExistContainer(String devName, String applicationName, String containerName) {
+        Function<Pointer, Boolean> func = (hApplication) -> {
+            List<String> containers = enumContainer(hApplication);
+            return containers.contains(containerName);
+        };
+        return openApplicationAndOperate(devName, applicationName, func);
     }
 
     public static List<List<String>> listContainer() {
@@ -92,71 +93,59 @@ public class SKFUtil {
     }
 
     public static void createContainer(String devName, String applicationName, String containerName) {
-        Pointer hDev = null;
-        Pointer hApplication = null;
-        try {
-            hDev = connectDev(devName);
-            hApplication = openApplication(hDev, applicationName);
+        Function<Pointer, Void> func = (hApplication) -> {
             // 用户pin码
             verifyPIN(hApplication, 1, PropertiesUtil.getString("usbKey.user.pin"));
             createContainer(hApplication, containerName);
-        } finally {
-            if (Objects.nonNull(hApplication)) {
-                closeApplication(hApplication);
-            }
-            if (Objects.nonNull(hDev)) {
-                disConnectDev(hDev);
-            }
-        }
+            return null;
+        };
+        openApplicationAndOperate(devName, applicationName, func);
     }
 
     public static void deleteContainer(String devName, String applicationName, String containerName) {
-        Pointer hDev = null;
-        Pointer hApplication = null;
-        try {
-            hDev = connectDev(devName);
-            hApplication = openApplication(hDev, applicationName);
+        Function<Pointer, Void> func = (hApplication) -> {
             verifyPIN(hApplication, 1, PropertiesUtil.getString("usbKey.user.pin"));
             deleteContainer(hApplication, containerName);
-        } finally {
-            if (Objects.nonNull(hApplication)) {
-                closeApplication(hApplication);
-            }
-            if (Objects.nonNull(hDev)) {
-                disConnectDev(hDev);
-            }
-        }
+            return null;
+        };
+        openApplicationAndOperate(devName, applicationName, func);
+    }
+
+    public static Struct_ECCPUBLICKEYBLOB genECCKeyPair(String devName, String applicationName, String containerName) {
+        BiFunction<Pointer, Pointer, Struct_ECCPUBLICKEYBLOB> func = (hApplication, hContainer) -> {
+            verifyPIN(hApplication, 1, PropertiesUtil.getString("usbKey.user.pin"));
+            return genECCKeyPair(hContainer);
+        };
+        return openContainerAndOperate(devName, applicationName, containerName, func);
     }
 
     public static void importCertsWithEnvelop(String devName, String applicationName, String containerName, Certificate sigCert, SKF_ENVELOPEDKEYBLOB envelop, Certificate encCert) {
-        Pointer hDev = null;
-        Pointer hApplication = null;
-        Pointer hContainer = null;
-        try {
-            hDev = connectDev(devName);
-            hApplication = openApplication(hDev, applicationName);
-            hContainer = openContainer(hApplication, containerName);
+        BiFunction<Pointer, Pointer, Void> func = (hApplication, hContainer) -> {
             verifyPIN(hApplication, 1, PropertiesUtil.getString("usbKey.user.pin"));
-            SKFUtil.importCertificate(hContainer, true, sigCert.getEncoded());
-            SKFUtil.ImportECCKeyPair(hContainer, envelop);
-            SKFUtil.importCertificate(hContainer, false, encCert.getEncoded());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (Objects.nonNull(hContainer)) {
-                closeContainer(hContainer);
+            try {
+                SKFUtil.importCertificate(hContainer, true, sigCert.getEncoded());
+                SKFUtil.ImportECCKeyPair(hContainer, envelop);
+                SKFUtil.importCertificate(hContainer, false, encCert.getEncoded());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-            if (Objects.nonNull(hApplication)) {
-                closeApplication(hApplication);
-            }
-            if (Objects.nonNull(hDev)) {
-                disConnectDev(hDev);
-            }
-        }
+            return null;
+        };
+        openContainerAndOperate(devName, applicationName, containerName, func);
+    }
+
+    public static Struct_ECCPUBLICKEYBLOB exportPublicKey(String devName, String applicationName, String containerName, boolean sign) {
+        BiFunction<Pointer, Pointer, Struct_ECCPUBLICKEYBLOB> func = (hApplication, hContainer) -> exportPublicKey(hContainer, sign);
+        return openContainerAndOperate(devName, applicationName, containerName, func);
+    }
+
+    public static Pointer importSessionKey(String devName, String applicationName, String containerName, int ulAlgId, Struct_ECCCIPHERBLOB pbWrapedDatay) {
+        BiFunction<Pointer, Pointer, Pointer> func = (hApplication, hContainer) -> importSessionKey(hContainer, ulAlgId, pbWrapedDatay);
+        return openContainerAndOperate(devName, applicationName, containerName, func);
     }
 
     // ----- 设备函数 ----- //
-    public static List<String> enumDev() {
+    private static List<String> enumDev() {
         IntByReference pulSizeOut = new IntByReference();
         checkError(uKey.SKF_EnumDev(1, null, pulSizeOut));
         int szNameListSize = pulSizeOut.getPointer().getInt(0);
@@ -171,14 +160,14 @@ public class SKFUtil {
         return devNames;
     }
 
-    public static Pointer connectDev(String szName) {
+    private static Pointer connectDev(String szName) {
         PointerByReference phDev = new PointerByReference();
         checkError(uKey.SKF_ConnectDev(szName, phDev));
         log.debug("连接设备:{}", szName);
         return phDev.getValue();
     }
 
-    public static void disConnectDev(Pointer hDev) {
+    private static void disConnectDev(Pointer hDev) {
         checkError(uKey.SKF_DisConnectDev(hDev));
         log.debug("断开设备");
     }
@@ -261,7 +250,7 @@ public class SKFUtil {
         return phContainer.getValue();
     }
 
-    public static void closeContainer(Pointer hContainer) {
+    private static void closeContainer(Pointer hContainer) {
         checkError(uKey.SKF_CloseContainer(hContainer));
         log.debug("关闭容器");
     }
@@ -280,19 +269,19 @@ public class SKFUtil {
         log.debug("容器类型为:{}", type);
     }
 
-    public static Struct_ECCPUBLICKEYBLOB genECCKeyPair(Pointer hContainer) {
+    private static Struct_ECCPUBLICKEYBLOB genECCKeyPair(Pointer hContainer) {
         Struct_ECCPUBLICKEYBLOB.ByReference bf = new Struct_ECCPUBLICKEYBLOB.ByReference();
         checkError(uKey.SKF_GenECCKeyPair(hContainer, AlgorithmID.SGD_SM2_1, bf));
         log.debug("生成ECC密钥对完成");
         return bf;
     }
 
-    public static void ImportECCKeyPair(Pointer hContainer, SKF_ENVELOPEDKEYBLOB pEnvelopedKeyBlob) {
+    private static void ImportECCKeyPair(Pointer hContainer, SKF_ENVELOPEDKEYBLOB pEnvelopedKeyBlob) {
         checkError(uKey.SKF_ImportECCKeyPair(hContainer, SKF_ENVELOPEDKEYBLOB.encode(pEnvelopedKeyBlob)));
         log.debug("导入ECC加密密钥对完成");
     }
 
-    public static Struct_ECCPUBLICKEYBLOB exportPublicKey(Pointer hContainer, boolean sign) {
+    private static Struct_ECCPUBLICKEYBLOB exportPublicKey(Pointer hContainer, boolean sign) {
         int flag = sign ? 1 : 0;
         IntByReference pulSizeOut = new IntByReference();
         checkError(uKey.SKF_ExportPublicKey(hContainer, flag, null, pulSizeOut));
@@ -329,11 +318,11 @@ public class SKFUtil {
 //        checkError(uKey.SKF_ECCExportSessionKey(hContainer, AlgorithmID.SGD_SM4_CBC, pPubKey, pData, phSessionKey));
 //        log.debug("导出会话密钥成功");
 //    }
-    public static Pointer importSessionKey(Pointer hContainer, int ulAlgId, Struct_ECCCIPHERBLOB pbWrapedData) {
+    private static Pointer importSessionKey(Pointer hContainer, int ulAlgId, Struct_ECCCIPHERBLOB pbWrapedData) {
         byte[] encryptedSessionKey = Struct_ECCCIPHERBLOB.encode(pbWrapedData);
         PointerByReference phKey = new PointerByReference();
         checkError(uKey.SKF_ImportSessionKey(hContainer, ulAlgId, encryptedSessionKey, encryptedSessionKey.length, phKey));
-        log.debug("导入" + ulAlgId + "类型会话密钥成功");
+        log.debug("导入{}类型会话密钥成功", ulAlgId);
         return phKey.getValue();
     }
 
